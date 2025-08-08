@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <style>
     body { font-family: sans-serif; text-align: center; background:#f4f4f4; padding:30px; margin:0; }
-    h1 { color:#444; margin: 10px 0 6px; }
+    h1 { color:#444; margin:10px 0 6px; }
 
     /* 上部バー：音声トグル＋ホームTOP10更新 */
     .topbar { display:flex; gap:10px; justify-content:center; align-items:center; flex-wrap:wrap; margin:8px 0 12px; }
@@ -65,9 +65,10 @@
     .result { font-size:20px; margin-top:16px; min-height:1.6em; }
 
     /* 操作ボタン（ゲーム中） */
-    #controlButtons { margin-top:20px; display:flex; gap:20px; justify-content:center; flex-wrap:wrap; }
-    #pauseButton { background:#ff9800; color:#fff; font-size:22px; padding:16px 32px; border-radius:14px; border:none; cursor:pointer; }
-    #quitButton  { background:#dc3545; color:#fff; font-size:22px; padding:16px 32px; border-radius:14px; border:none; cursor:pointer; }
+    #controlButtons { margin-top:20px; display:flex; gap:14px; justify-content:center; flex-wrap:wrap; }
+    #pauseButton { background:#ff9800; color:#fff; font-size:20px; padding:14px 22px; border-radius:12px; border:none; cursor:pointer; }
+    #quitButton  { background:#dc3545; color:#fff; font-size:20px; padding:14px 22px; border-radius:12px; border:none; cursor:pointer; }
+    #homeButton  { background:#6c757d; color:#fff; font-size:20px; padding:14px 22px; border-radius:12px; border:none; cursor:pointer; }
 
     /* カウントダウン・オーバーレイ（フェード無し・拡大のみ） */
     #countOverlay{
@@ -96,8 +97,8 @@
     table.lead thead th { background:#f9f9f9; }
     .small-note{ font-size:12px; color:#666; }
 
-    /* メダルの大きさ */
-    .medal { font-size: 1.8em; line-height:1; display:inline-block; }
+    /* メダルの大きさ（大きめ） */
+    .medal { font-size: 2.2em; line-height:1; display:inline-block; }
     .ranknum { color:#666; }
 
     /* コメント入力UI */
@@ -170,10 +171,11 @@
 
   <div class="result" id="result"></div>
 
-  <!-- 操作ボタン（停止/再開・終了） -->
+  <!-- 操作ボタン（停止/再開・終了・ホームへ） -->
   <div id="controlButtons" style="display:none;">
     <button id="pauseButton" onclick="togglePause()">⏸ 一時停止</button>
     <button id="quitButton"  onclick="quitGame()">⏹ やめる</button>
+    <button id="homeButton"  onclick="goHome()">⬅ スタート画面に戻る</button>
   </div>
 
   <!-- スタート -->
@@ -198,7 +200,7 @@
     /* ===== 設定 ===== */
     const labelMap = { P:"きもち", E:"まわり", I:"できること", Ph:"からだ＆病気" };
 
-    // Firebase 設定（あなたのプロジェクトの値を反映済み）
+    // Firebase 設定（あなたのプロジェクトの値）
     const firebaseConfig = {
       apiKey: "AIzaSyARGroRdf4DmJN5nOHdiVy-a9UCA1ruDPw",
       authDomain: "peip-quiz.firebaseapp.com",
@@ -212,7 +214,6 @@
     const db = firebase.firestore();
 
     /* ===== ランキング（Firestore） ===== */
-    // スコア送信
     async function submitScoreToFirestore({name, comment, correct, elapsedSec}) {
       const now = new Date();
       const payload = {
@@ -221,13 +222,12 @@
         correct: Number(correct) || 0,
         time: Number(elapsedSec) || 0,
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        createdAtLocal: now.toISOString() // 保存は秒あり、表示は分までに整形
+        createdAtLocal: now.toISOString() // 保存は秒まで。表示は分までに整形
       };
       const docRef = await db.collection('scores').add(payload);
       return docRef.id;
     }
 
-    // ランキング取得（正解↓ / タイム↑ / createdAt↑）→ さらに正解=50のみ抽出してTOP10
     async function fetchTop10OnlyPerfect(){
       const snap = await db.collection('scores')
         .orderBy('correct','desc').orderBy('time','asc').orderBy('createdAt','asc')
@@ -278,7 +278,6 @@
         </table>`;
     }
 
-    // ホームのTOP10表示（スタート前）
     async function renderHomeTop10(){
       const box = document.getElementById('homeLeaderboard');
       try{
@@ -292,7 +291,6 @@
     }
     document.getElementById('btnRefreshHomeRank').onclick = renderHomeTop10;
 
-    // 「ランキングをみる」表示用（コメント送信後だけ出す）
     async function showFullRankingAfterSubmit(){
       const leaderEl = document.getElementById('leaderboard');
       leaderEl.innerHTML = `読み込み中…`;
@@ -554,6 +552,33 @@
       }
     }
 
+    // ←NEW: スタート画面に戻る
+    function goHome(){
+      if(!confirm("スタート画面に戻りますか？（進行中の結果は消えます）")) return;
+      // タイマー停止
+      if(elapsedTimer) clearInterval(elapsedTimer);
+      // UI 初期化
+      document.getElementById("gameInfo").style.display = "none";
+      document.getElementById("question").style.display = "none";
+      document.getElementById("answerButtons").style.display = "none";
+      document.getElementById("controlButtons").style.display = "none";
+      document.getElementById("finalReport").style.display = "none";
+      // スタート画面表示 & TOP10復活
+      document.getElementById("homeBox").style.display = "block";
+      document.getElementById("startButton").style.display = "inline-block";
+      document.getElementById("startButton").disabled = false;
+      // 値初期化
+      current=0; score=0; wrongAnswers=[]; paused=false; totalPausedTime=0; penaltyTime=0;
+      document.getElementById("score").innerText = "0";
+      document.getElementById("questionNumber").innerText = "0";
+      document.getElementById("accuracy").innerText = "0.0%";
+      document.getElementById("elapsed").innerHTML = `0<span class="decimal">.00</span>`;
+      // TOP10再読込
+      renderHomeTop10();
+      // カウントダウンオーバーレイ消す念のため
+      document.getElementById("countOverlay").style.display = "none";
+    }
+
     function buildSubmitFormHTML(correct, elapsedSec) {
       return `
         <h4>ランキング投稿（50問すべて解いた方のみ）</h4>
@@ -566,6 +591,7 @@
         <div id="rankMessage" style="margin-top:8px;"></div>
         <div style="margin-top:16px;">
           <button id="btnShowRanking" class="btn-view">ランキングをみる</button>
+          <button onclick="goHome()" class="btn-view" style="display:inline-block;background:#6c757d;">⬅ スタート画面に戻る</button>
         </div>
         <div id="leaderboard" style="margin-top:16px;"></div>`;
     }
@@ -574,11 +600,13 @@
       const btn = document.getElementById('rankSubmitBtn'); if(!btn) return;
       const btnShow = document.getElementById('btnShowRanking');
       const msgEl = document.getElementById('rankMessage');
+      const nameEl = document.getElementById('rankName');
+      const cmtEl  = document.getElementById('rankComment');
 
       btn.onclick = async ()=>{
         btn.disabled = true;
-        const name = document.getElementById('rankName')?.value || "";
-        const comment = document.getElementById('rankComment')?.value || "";
+        const name = nameEl?.value || "";
+        const comment = cmtEl?.value || "";
         if (comment.length > 20){
           msgEl.textContent = "コメントは20文字以内で入力してください。";
           btn.disabled = false;
@@ -587,13 +615,17 @@
         try{
           await submitScoreToFirestore({ name, comment, correct, elapsedSec });
           msgEl.textContent = "送信完了しました。";
-          // コメント送信後にだけ「ランキングをみる」ボタンを出す
+          // 編集不可にする
+          if(nameEl){ nameEl.readOnly = true; nameEl.classList.add('disabled'); }
+          if(cmtEl){  cmtEl.readOnly  = true; cmtEl.classList.add('disabled'); }
+          btn.textContent = "送信済み";
+          btn.disabled = true;
+          // 「ランキングをみる」ボタンを出す
           btnShow.style.display = 'inline-block';
           btnShow.onclick = showFullRankingAfterSubmit;
         }catch(e){
           console.error(e);
           msgEl.textContent = "送信に失敗しました。時間をおいて再度お試しください。";
-        }finally{
           btn.disabled = false;
         }
       };
@@ -626,7 +658,14 @@
       }else{
         html += `<p class="correct">全問正解！おめでとうございます！</p>`;
       }
-      html += `<button onclick="startCountdown()" style="background:#ff69b4;color:#fff;font-size:20px;padding:15px 40px;border-radius:14px;border:none;cursor:pointer;">もう一度プレイ</button>`;
+
+      // 再プレイ & ホーム
+      html += `
+        <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
+          <button onclick="startCountdown()" style="background:#ff69b4;color:#fff;font-size:18px;padding:12px 20px;border-radius:12px;border:none;cursor:pointer;">もう一度プレイ</button>
+          <button onclick="goHome()" style="background:#6c757d;color:#fff;font-size:18px;padding:12px 20px;border-radius:12px;border:none;cursor:pointer;">⬅ スタート画面に戻る</button>
+        </div>
+      `;
 
       const report=document.getElementById("finalReport");
       report.innerHTML=html;
