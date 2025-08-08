@@ -1,0 +1,322 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>P.E.I.P. 分類クイズ</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; background:#f4f4f4; padding:30px; }
+    h1 { color:#444; }
+    .question { font-size:24px; margin:20px 0; }
+    .buttons { margin:20px; }
+    button { font-size:18px; margin:10px; padding:15px 30px; border:none; border-radius:10px; cursor:pointer; }
+    .P  { background:#e74c3c; color:#fff; }   /* きもち・赤 */
+    .E  { background:#3498db; color:#fff; }   /* まわり・青 */
+    .I  { background:#f1c40f; color:#fff; }   /* できること・黄 */
+    .Ph { background:#2ecc71; color:#fff; }   /* からだ・緑 */
+
+    /* スタートボタン（ピンク） */
+    #startButton { background:#ff69b4; color:#fff; font-size:20px; padding:15px 40px; border-radius:14px; }
+
+    /* 情報バー */
+    .info { font-size:18px; margin-top:10px; display:flex; gap:16px; align-items:center; justify-content:center; flex-wrap:wrap; }
+
+    /* 経過時間を超目立たせるバッジ風 */
+    .elapsed-badge {
+      display:inline-block; padding:6px 14px; border-radius:999px;
+      background:#e3f7ff; border:2px solid #5bc0de; color:#0b6d85;
+      font-weight:800; letter-spacing:0.5px;
+    }
+    #elapsed { font-size:34px; }
+    #elapsed .decimal { font-size:20px; vertical-align:super; }
+
+    /* 正解率バッジ */
+    .acc-badge {
+      display:inline-block; padding:6px 14px; border-radius:999px;
+      background:#fff6e0; border:2px solid #f0ad4e; color:#856404; font-weight:800;
+    }
+
+    .result { font-size:20px; margin-top:16px; min-height:1.6em; }
+
+    /* レポート */
+    .report { text-align:left; margin:20px auto; max-width:780px; }
+    .report h3 { border-bottom:2px solid #ccc; padding-bottom:5px; }
+    .report-item { margin-bottom:12px; }
+    .wrong { color:#d9534f; }
+    .correct { color:#2e7d32; }
+
+    /* 操作ボタン（大きく・目立つ） */
+    #controlButtons { margin-top:20px; display:flex; gap:20px; justify-content:center; flex-wrap:wrap; }
+    #pauseButton { background:#ff9800; color:#fff; font-size:22px; padding:16px 32px; border-radius:14px; }
+    #quitButton  { background:#dc3545; color:#fff; font-size:22px; padding:16px 32px; border-radius:14px; }
+  </style>
+</head>
+<body>
+  <h1>P.E.I.P. 分類クイズ</h1>
+
+  <!-- 情報表示 -->
+  <div class="info" id="gameInfo" style="display:none;">
+    <span>スコア: <strong id="score">0</strong></span>
+    <span>問題: <strong id="questionNumber">0</strong> / <strong id="totalQuestions">0</strong></span>
+    <span class="elapsed-badge">経過時間: <span id="elapsed">0<span class="decimal">.00</span></span> 秒</span>
+    <span class="acc-badge">正解率: <strong id="accuracy">0.0%</strong></span>
+  </div>
+
+  <!-- 問題文 -->
+  <div class="question" id="question" style="display:none;">問題を読み込み中...</div>
+
+  <!-- 回答ボタン -->
+  <div class="buttons" id="answerButtons" style="display:none;">
+    <button class="P"  onclick="checkAnswer('P')">きもち</button>
+    <button class="E"  onclick="checkAnswer('E')">まわり</button>
+    <button class="I"  onclick="checkAnswer('I')">できること</button>
+    <button class="Ph" onclick="checkAnswer('Ph')">からだ＆びょうき</button>
+  </div>
+
+  <div class="result" id="result"></div>
+
+  <!-- 操作ボタン（停止/再開・終了） -->
+  <div id="controlButtons" style="display:none;">
+    <button id="pauseButton" onclick="togglePause()">⏸ 一時停止</button>
+    <button id="quitButton"  onclick="quitGame()">⏹ やめる</button>
+  </div>
+
+  <!-- スタート -->
+  <button id="startButton" onclick="startGame()">スタート</button>
+
+  <!-- 結果レポート -->
+  <div id="finalReport" class="report" style="display:none;"></div>
+
+  <!-- 効果音（フォルダ直下に置く） -->
+  <audio id="correctSound" src="se_correct.mp3" preload="auto"></audio>
+  <audio id="wrongSound"   src="se_wrong.mp3"   preload="auto"></audio>
+
+  <script>
+    const labelMap = { P:"きもち", E:"まわり", I:"できること", Ph:"からだ＆びょうき" };
+
+    // 50問（毎回ランダム）
+    const questions = [
+      { text: "孫に会いたいと思っている", answer: "P" },
+      { text: "洗濯物にしわがある", answer: "E" },
+      { text: "トイレで立つことができる", answer: "I" },
+      { text: "便秘が続いている", answer: "Ph" },
+      { text: "朝食時はコーヒーを飲む習慣がある", answer: "P" },
+      { text: "居室の手すりがぐらついている", answer: "E" },
+      { text: "一人で歯磨きができる", answer: "I" },
+      { text: "むせることが増えてきた", answer: "Ph" },
+      { text: "デイサービスを楽しみにしている", answer: "P" },
+      { text: "冷蔵庫の中に古い食品があった", answer: "E" },
+      { text: "歩行器を使って自立歩行している", answer: "I" },
+      { text: "足にむくみが見られる", answer: "Ph" },
+      { text: "好きな音楽を毎日聴いている", answer: "P" },
+      { text: "洗面所の床が濡れている", answer: "E" },
+      { text: "トイレのボタン操作ができる", answer: "I" },
+      { text: "肌にかゆみがあると訴えている", answer: "Ph" },
+      { text: "外出できるようになりたいという希望がある", answer: "P" },
+      { text: "介助用ベッドが設置されている", answer: "E" },
+      { text: "自分で着替えができている", answer: "I" },
+      { text: "食欲がない日が続いている", answer: "Ph" },
+      { text: "昔の仕事の話をよくしてくれる", answer: "P" },
+      { text: "福祉用具を使用している", answer: "E" },
+      { text: "自分で電話をかけることができる", answer: "I" },
+      { text: "視力の低下を訴えている", answer: "Ph" },
+      { text: "食べたいものがあると話している", answer: "P" },
+      { text: "玄関に段差がある", answer: "E" },
+      { text: "自分でお茶を入れて飲んでいる", answer: "I" },
+      { text: "夜間の頻尿がある", answer: "Ph" },
+      { text: "散歩が習慣になっている", answer: "P" },
+      { text: "訪問看護を利用している", answer: "E" },
+      { text: "朝の体操に参加している", answer: "I" },
+      { text: "ふらつきがあるため歩行が不安定", answer: "Ph" },
+      { text: "趣味の編み物を再開したいという希望がある", answer: "P" },
+      { text: "自室に香りの強い芳香剤がある", answer: "E" },
+      { text: "自分で体重を測って記録している", answer: "I" },
+      { text: "腰の痛みを訴えている", answer: "Ph" },
+      { text: "食事の準備にこだわりがある", answer: "P" },
+      { text: "テレビの音量が大きい", answer: "E" },
+      { text: "薬を自分で管理できている", answer: "I" },
+      { text: "目やにが多く見られる", answer: "Ph" },
+      { text: "1人で寝たいと話している", answer: "P" },
+      { text: "ベッドサイドに呼び鈴が設置されている", answer: "E" },
+      { text: "料理をして家族にふるまっている", answer: "I" },
+      { text: "皮膚の乾燥が強い", answer: "Ph" },
+      { text: "昔の写真を眺めるのが好き", answer: "P" },
+      { text: "近所の人と交流がある", answer: "E" },
+      { text: "買い物リストを自分で作成している", answer: "I" },
+      { text: "夜間の不眠がある", answer: "Ph" },
+      { text: "毎朝ラジオ体操をしている", answer: "P" },
+      { text: "居室の換気が不十分", answer: "E" }
+    ];
+
+    function shuffle(array){
+      for(let i=array.length-1;i>0;i--){
+        const j=Math.floor(Math.random()*(i+1));
+        [array[i],array[j]]=[array[j],array[i]];
+      }
+    }
+
+    let current=0, score=0, wrongAnswers=[];
+    let startTime=0, elapsedTimer=null, primed=false;
+    let paused=false, pauseStartTime=0, totalPausedTime=0;
+    let penaltyTime = 0; // ★ 不正解ペナルティ累計（ミリ秒）
+
+    function startGame(){
+      primeSounds();               // クリック直後にアンロック
+      shuffle(questions);
+      current=0; score=0; wrongAnswers=[];
+      paused=false; pauseStartTime=0; totalPausedTime=0; penaltyTime=0;
+
+      document.getElementById("totalQuestions").innerText = questions.length;
+      document.getElementById("score").innerText = score;
+      updateAccuracy(0);
+
+      document.getElementById("startButton").style.display = "none";
+      document.getElementById("finalReport").style.display = "none";
+      document.getElementById("gameInfo").style.display = "flex";
+      document.getElementById("question").style.display = "block";
+      document.getElementById("answerButtons").style.display = "block";
+      document.getElementById("controlButtons").style.display = "flex";
+      document.getElementById("pauseButton").textContent = "⏸ 一時停止";
+      document.getElementById("result").textContent = "";
+
+      startTime = Date.now();
+      elapsedTimer = setInterval(updateElapsedTime, 50);
+
+      showQuestion();
+    }
+
+    function primeSounds(){
+      if(primed) return;
+      const ok = document.getElementById("correctSound");
+      const ng = document.getElementById("wrongSound");
+      [ok, ng].forEach(a=>{
+        try{
+          a.volume=0; a.currentTime=0;
+          a.play().then(()=>{
+            a.pause(); a.currentTime=0; a.volume=1; primed=true;
+          }).catch(()=>{ /* 次回再生で鳴る場合あり */ });
+        }catch(e){}
+      });
+    }
+
+    function updateElapsedTime(){
+      // 停止時間を引き、ペナルティ時間を足す
+      const sec = (Date.now() - startTime - totalPausedTime + penaltyTime) / 1000;
+      const intPart = Math.floor(sec);
+      const decimalPart = (sec - intPart).toFixed(2).substring(1);
+      document.getElementById("elapsed").innerHTML =
+        `${intPart}<span class="decimal">${decimalPart}</span>`;
+    }
+
+    function showQuestion(){
+      document.getElementById("question").innerText = questions[current].text;
+      document.getElementById("questionNumber").innerText = current + 1;
+      document.getElementById("result").innerText = "";
+    }
+
+    function playOnce(id){
+      const el = document.getElementById(id);
+      try{ el.currentTime = 0; el.play(); }catch(e){}
+    }
+
+    function checkAnswer(choice){
+      if(paused) return; // 停止中は無効
+      const correct = questions[current].answer;
+
+      if(choice === correct){
+        score++;
+        document.getElementById("result").innerText = "⭕ 正解！";
+        playOnce("correctSound");
+      }else{
+        document.getElementById("result").innerText =
+          `❌ 不正解。正解は「${labelMap[correct]}」です。`;
+        playOnce("wrongSound");
+        wrongAnswers.push({
+          question: questions[current].text,
+          selected: labelMap[choice] || "（無回答）",
+          correct:  labelMap[correct]
+        });
+        penaltyTime += 5000; // ★ 不正解ペナルティ：5秒追加（ミリ秒）
+        // 追加直後に表示を即更新（体感をわかりやすく）
+        updateElapsedTime();
+      }
+
+      document.getElementById("score").innerText = score;
+      updateAccuracy(current + 1);
+
+      current++;
+      if(current < questions.length){
+        setTimeout(showQuestion, 2000);
+      }else{
+        clearInterval(elapsedTimer);
+        showFinalReport();
+      }
+    }
+
+    function updateAccuracy(answered){
+      const totalAnswered = Math.max(answered ?? 0, current);
+      const rate = totalAnswered > 0 ? ((score/totalAnswered)*100).toFixed(1) : "0.0";
+      document.getElementById("accuracy").textContent = `${rate}%`;
+    }
+
+    function togglePause(){
+      if(!paused){
+        // 一時停止開始
+        paused = true;
+        pauseStartTime = Date.now();
+        clearInterval(elapsedTimer);
+        document.getElementById("pauseButton").textContent = "▶ 再開";
+        document.getElementById("result").textContent = "⏸ 一時停止中";
+      }else{
+        // 再開
+        paused = false;
+        totalPausedTime += Date.now() - pauseStartTime;
+        elapsedTimer = setInterval(updateElapsedTime, 50);
+        document.getElementById("pauseButton").textContent = "⏸ 一時停止";
+        document.getElementById("result").textContent = "";
+      }
+    }
+
+    function quitGame(){
+      if(confirm("ゲームを終了しますか？")){
+        clearInterval(elapsedTimer);
+        showFinalReport();
+      }
+    }
+
+    function showFinalReport(){
+      // UI 切り替え
+      document.getElementById("gameInfo").style.display = "none";
+      document.getElementById("question").style.display = "none";
+      document.getElementById("answerButtons").style.display = "none";
+      document.getElementById("controlButtons").style.display = "none";
+
+      // 合計時間（停止分を除き、ペナルティを加算）
+      const totalTime = ((Date.now() - startTime - totalPausedTime + penaltyTime)/1000).toFixed(2);
+      const percent = ((score / questions.length) * 100).toFixed(1);
+
+      let html = `<h3>結果発表</h3>
+        <p>正解数: <strong>${score}</strong> / ${questions.length}</p>
+        <p>正解率: <strong>${percent}%</strong></p>
+        <p>かかった時間: <strong>${totalTime}秒</strong></p>`;
+
+      if(wrongAnswers.length){
+        html += `<h4>間違った問題一覧</h4>`;
+        wrongAnswers.forEach(item=>{
+          html += `<div class="report-item">
+            <div><strong>問題:</strong> ${item.question}</div>
+            <div class="wrong"><strong>あなたの答え:</strong> ${item.selected}</div>
+            <div class="correct"><strong>正解:</strong> ${item.correct}</div>
+          </div>`;
+        });
+      }else{
+        html += `<p class="correct">全問正解！おめでとうございます！</p>`;
+      }
+      html += `<button id="startButton2" onclick="startGame()" style="background:#ff69b4;color:#fff;font-size:20px;padding:15px 40px;border-radius:14px;">もう一度プレイ</button>`;
+
+      const report = document.getElementById("finalReport");
+      report.innerHTML = html;
+      report.style.display = "block";
+    }
+  </script>
+</body>
+</html>
