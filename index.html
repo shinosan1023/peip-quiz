@@ -8,14 +8,13 @@
     body { font-family: sans-serif; text-align: center; background:#f4f4f4; padding:30px; margin:0; }
     h1 { color:#444; margin: 10px 0 6px; }
 
-    /* 上部バー：音声トグル＋ランキングボタン */
+    /* 上部バー：音声トグル＋(任意)更新 */
     .topbar { display:flex; gap:10px; justify-content:center; align-items:center; flex-wrap:wrap; margin:8px 0 12px; }
     .sound-toggle { display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; background:#fff; border:1px solid #ddd; }
     .sound-toggle input { width:20px; height:20px; }
     #soundLabel { font-weight:600; }
     .btn { padding:8px 14px; border:none; border-radius:10px; cursor:pointer; }
     .btn-refresh { background:#17a2b8; color:#fff; }
-    .btn-view { background:#6c757d; color:#fff; }
 
     .question { font-size:24px; margin:20px 0; }
     .buttons { margin:20px; display:flex; gap:14px; flex-wrap:wrap; justify-content:center; }
@@ -83,14 +82,14 @@
     .pop { animation: popscale .35s ease-out; }
 
     /* レポート＆ランキング表 */
-    .report { text-align:left; margin:20px auto; max-width:860px; background:#fff; padding:14px; border-radius:10px; box-shadow:0 4px 10px rgba(0,0,0,.04);}
+    .report { text-align:left; margin:20px auto; max-width:900px; background:#fff; padding:14px; border-radius:10px; box-shadow:0 4px 10px rgba(0,0,0,.04);}
     .report h3, .report h4 { margin:10px 0; }
     .report-item { margin-bottom:12px; }
     .wrong { color:#d9534f; }
     .correct { color:#2e7d32; }
 
     table.lead { width:100%; border-collapse:collapse; }
-    table.lead th, table.lead td { padding:6px 8px; border-bottom:1px solid #eee; }
+    table.lead th, table.lead td { padding:6px 8px; border-bottom:1px solid #eee; vertical-align:middle; }
     table.lead thead th { background:#f9f9f9; }
     .small-note{ font-size:12px; color:#666; }
 
@@ -102,18 +101,26 @@
     .flex { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
     .input { padding:8px; border:1px solid #ccc; border-radius:8px; }
     .btn-green { background:#28a745; color:#fff; border:none; border-radius:8px; padding:10px 14px; cursor:pointer; }
+    .btn-view { background:#6c757d; color:#fff; border:none; border-radius:8px; padding:10px 14px; cursor:pointer; display:none; } /* ←送信後に表示 */
+
+    /* 王冠SVGサイズ */
+    .crown { width:20px; height:16px; vertical-align:middle; margin-right:6px; }
+    .rank-1 .crown { fill:#d4af37; } /* 金 */
+    .rank-2 .crown { fill:#c0c0c0; } /* 銀 */
+    .rank-3 .crown { fill:#b87333; } /* 銅 */
+    .edit-btn { font-size:12px; margin-left:8px; padding:4px 6px; border:none; border-radius:6px; cursor:pointer; background:#ffc107; color:#333; }
+    .comment-time { color:#666; font-size:12px; margin-left:8px; white-space:nowrap; }
   </style>
 </head>
 <body>
   <h1>P.E.I.P. 分類クイズ</h1>
 
-  <!-- 上部：音声トグル＋ランキング表示ボタン -->
+  <!-- 上部：音声トグル＋更新 -->
   <div class="topbar">
     <label class="sound-toggle" title="効果音 ON/OFF">
       <input type="checkbox" id="soundToggle" checked />
       <span id="soundLabel">音声: ON</span>
     </label>
-    <button class="btn btn-view" id="btnShowRanking">ランキングをみる</button>
     <button class="btn btn-refresh" id="btnRefreshHomeRank">更新</button>
   </div>
 
@@ -198,7 +205,7 @@
     ==========================*/
     const labelMap = { P:"きもち", E:"まわり", I:"できること", Ph:"からだ＆病気" };
 
-    // Firebase 設定（あなたのプロジェクトで置き換え済み）
+    // Firebase 設定（あなたのプロジェクト）
     const firebaseConfig = {
       apiKey: "AIzaSyARGroRdf4DmJN5nOHdiVy-a9UCA1ruDPw",
       authDomain: "peip-quiz.firebaseapp.com",
@@ -219,7 +226,7 @@
       const now = new Date();
       const payload = {
         name: (name || "名無し").slice(0, 40),
-        comment: (comment || "").slice(0, 20),                 // ★ 20文字制限
+        comment: (comment || "").slice(0, 20),                       // ★ 20文字制限
         commentAtLocal: now.toISOString().replace('T',' ').slice(0,19), // ★ 入力時の日時(ローカル) YYYY-MM-DD hh:mm:ss
         correct: Number(correct) || 0,
         time: Number(elapsedSec) || 0,
@@ -228,6 +235,15 @@
       };
       const docRef = await db.collection('scores').add(payload);
       return docRef.id;
+    }
+
+    // コメント修正
+    async function updateMyComment({docId, newComment}) {
+      const now = new Date();
+      await db.collection('scores').doc(docId).update({
+        comment: (newComment || "").slice(0,20),
+        commentAtLocal: now.toISOString().replace('T',' ').slice(0,19)
+      });
     }
 
     // ランキング取得（正解↓ / タイム↑ / createdAt↑）
@@ -243,7 +259,9 @@
     function escapeHtml(s){ return String(s).replace(/[&<>"'`=\/]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','/':'&#x2F;','=':'&#x3D;','`':'&#x60;'}[c])); }
     function fmtLocal(iso){ try{ const d=new Date(iso); const z=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())} ${z(d.getHours())}:${z(d.getMinutes())}` }catch{ return iso||"" } }
 
-    function buildTopTable(list) {
+    function crownSVG(){ return `<svg class="crown" viewBox="0 0 64 48" aria-hidden="true"><path d="M6 40h52v6H6zM6 36l10-18 16 12 16-12 10 18z"/></svg>`; }
+
+    function buildTopTable(list, myId=null) {
       if(!list || list.length===0) return '<p class="small-note">データがありません。</p>';
       return `
         <table class="lead">
@@ -258,20 +276,29 @@
             </tr>
           </thead>
           <tbody>
-            ${list.map((r,i)=>`
-              <tr>
-                <td style="text-align:right;">${i+1}</td>
-                <td>${escapeHtml(r.name||"名無し")}</td>
-                <td style="text-align:right;">${Number(r.correct)||0}</td>
-                <td style="text-align:right;">${(Number(r.time)||0).toFixed(2)}s</td>
-                <td>${fmtLocal(r.createdAtLocal||r.commentAtLocal||"")}</td>
-                <td>${escapeHtml(r.comment||"")}</td>
-              </tr>`).join('')}
+            ${list.map((r,i)=>{
+              const rankClass = (i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':'');
+              const crown = (i<3)? `<span class="${rankClass}">${crownSVG()}</span>` : '';
+              const editBtn = (myId && r.id===myId) ? `<button class="edit-btn" data-id="${r.id}">修正</button>` : '';
+              const timeStr = escapeHtml(r.commentAtLocal || r.createdAtLocal || '');
+              return `
+                <tr>
+                  <td style="text-align:right;">${crown}${i+1}</td>
+                  <td>${escapeHtml(r.name||"名無し")}</td>
+                  <td style="text-align:right;">${Number(r.correct)||0}</td>
+                  <td style="text-align:right;">${(Number(r.time)||0).toFixed(2)}s</td>
+                  <td>${fmtLocal(r.createdAtLocal||"")}</td>
+                  <td>
+                    ${escapeHtml(r.comment||"")}
+                    <span class="comment-time">${timeStr}</span>
+                    ${editBtn}
+                  </td>
+                </tr>`;
+            }).join('')}
           </tbody>
         </table>`;
     }
 
-    // ホームのTOP10表示
     async function renderHomeTop10(){
       const box = document.getElementById('homeLeaderboard');
       try{
@@ -283,22 +310,8 @@
         box.textContent = '読み込みに失敗しました。';
       }
     }
-    // 任意タイミングで全体ランキングをモーダルの代わりに下部に出す
-    async function showFullRanking(){
-      const list = await fetchLeaderboard(10);
-      const html = `<div class="report"><h3>ランキング（上位10件）</h3>${buildTopTable(list)}</div>`;
-      // 画面上に挿入（ホームの上にある report の下側に置く）
-      const existing = document.getElementById('fullRankBox');
-      if(existing) existing.remove();
-      const div = document.createElement('div');
-      div.id = 'fullRankBox';
-      div.innerHTML = html;
-      document.body.appendChild(div);
-      window.scrollTo({top: div.offsetTop - 20, behavior:'smooth'});
-    }
 
     document.getElementById('btnRefreshHomeRank').onclick = renderHomeTop10;
-    document.getElementById('btnShowRanking').onclick = showFullRanking;
 
     /* =========================
        クイズ本体
@@ -551,38 +564,79 @@
 
     function buildSubmitFormHTML(correct, elapsedSec) {
       return `
+        <h3>結果発表</h3>
+        <p>正解数: <strong>${correct}</strong> / 50</p>
+        <p>正解率: <strong>${((correct/50)*100).toFixed(1)}%</strong></p>
+        <p>かかった時間: <strong>${Number(elapsedSec).toFixed(2)}秒</strong></p>
+        <hr/>
         <h4>ランキング投稿（50問すべて解いた方のみ）</h4>
-        <p class="small-note">コメントは<strong>20文字以内</strong>。送信時の日時は自動で保存されます。</p>
+        <p class="small-note">コメントは<strong>20文字以内</strong>。送信ボタンを押すと、入力時刻（秒まで）が自動保存されます。</p>
         <div class="flex">
-          <input id="rankName" class="input" placeholder="お名前（任意）" />
+          <input id="rankName" class="input" placeholder="お名前（任意・40字まで）" maxlength="40"/>
           <input id="rankComment" class="input" placeholder="一言コメント（20文字以内）" maxlength="20" style="flex:1;min-width:260px;"/>
           <button id="rankSubmitBtn" class="btn-green">コメント完了（送信）</button>
         </div>
         <div id="rankMessage" style="margin-top:8px;"></div>
         <div style="margin-top:16px;">
-          <button class="btn btn-view" onclick="showFullRanking()">ランキングをみる</button>
+          <button id="btnShowRankingAfter" class="btn-view">ランキングをみる</button>
         </div>
         <div id="leaderboard" style="margin-top:16px;"></div>`;
     }
 
+    function attachEditHandlers(myId){
+      // 自分の行の「修正」ボタンを探してイベント付与
+      document.querySelectorAll(`.edit-btn[data-id="${myId}"]`).forEach(btn=>{
+        btn.onclick = async ()=>{
+          const currentText = btn.parentElement?.childNodes[0]?.textContent?.trim() || "";
+          const newComment = prompt("コメントを修正（20文字以内）", currentText) ?? "";
+          if (newComment.length > 20){
+            alert("20文字以内で入力してください。");
+            return;
+          }
+          try{
+            await updateMyComment({ docId: myId, newComment });
+            // 再取得して再描画
+            const top = await fetchLeaderboard(10);
+            document.getElementById('leaderboard').innerHTML = buildTopTable(top, myId);
+            attachEditHandlers(myId);
+          }catch(e){
+            console.error(e);
+            alert("修正に失敗しました。時間をおいて再試行してください。");
+          }
+        };
+      });
+    }
+
     async function wireUpRankSubmit(correct, elapsedSec) {
       const btn = document.getElementById('rankSubmitBtn'); if(!btn) return;
+      const msgEl = document.getElementById('rankMessage');
+      const showBtn = document.getElementById('btnShowRankingAfter');
+
+      // 送信前は「ランキングをみる」非表示のまま
+      if (showBtn) showBtn.style.display = 'none';
+
       btn.onclick = async ()=>{
         btn.disabled = true;
         const name = document.getElementById('rankName')?.value || "";
         const comment = document.getElementById('rankComment')?.value || "";
-        const msgEl = document.getElementById('rankMessage');
         if (comment.length > 20){
           msgEl.textContent = "コメントは20文字以内で入力してください。";
           btn.disabled = false;
           return;
         }
         try{
-          await submitScoreToFirestore({ name, comment, correct, elapsedSec });
-          msgEl.textContent = "送信完了。ランキングを表示します…";
-          const top = await fetchLeaderboard(10);
-          document.getElementById('leaderboard').innerHTML =
-            `<h4>ランキング（上位10件）</h4>${buildTopTable(top)}`;
+          const myId = await submitScoreToFirestore({ name, comment, correct, elapsedSec });
+          msgEl.textContent = "送信完了。ランキングを表示できます。";
+          // 「ランキングをみる」ボタンを表示して、押したら取得＆表示
+          if (showBtn) {
+            showBtn.style.display = 'inline-block';
+            showBtn.onclick = async ()=>{
+              const top = await fetchLeaderboard(10);
+              document.getElementById('leaderboard').innerHTML = buildTopTable(top, myId);
+              attachEditHandlers(myId);
+              showBtn.textContent = "ランキング更新";
+            };
+          }
         }catch(e){
           console.error(e);
           msgEl.textContent = "送信に失敗しました。時間をおいて再度お試しください。";
@@ -602,13 +656,14 @@
       const totalTimeSec = Number(((Date.now() - startTime - totalPausedTime + penaltyTime)/1000).toFixed(2));
       const percent = ((score / questions.length) * 100).toFixed(1);
 
-      let html = `<h3>結果発表</h3>
-        <p>正解数: <strong>${score}</strong> / ${questions.length}</p>
-        <p>正解率: <strong>${percent}%</strong></p>
-        <p>かかった時間: <strong>${totalTimeSec.toFixed(2)}秒</strong></p>`;
-
+      // レポート
+      let html = '';
       if(wrongAnswers.length){
-        html += `<h4>間違った問題一覧</h4>`;
+        html += `<h3>結果発表</h3>
+          <p>正解数: <strong>${score}</strong> / ${questions.length}</p>
+          <p>正解率: <strong>${percent}%</strong></p>
+          <p>かかった時間: <strong>${totalTimeSec.toFixed(2)}秒</strong></p>
+          <h4>間違った問題一覧</h4>`;
         wrongAnswers.forEach(item=>{
           html += `<div class="report-item">
             <div><strong>問題:</strong> ${item.question}</div>
@@ -617,15 +672,19 @@
           </div>`;
         });
       }else{
-        html += `<p class="correct">全問正解！おめでとうございます！</p>`;
+        html += `<h3>結果発表</h3>
+          <p>正解数: <strong>${score}</strong> / ${questions.length}</p>
+          <p>正解率: <strong>${percent}%</strong></p>
+          <p>かかった時間: <strong>${totalTimeSec.toFixed(2)}秒</strong></p>
+          <p class="correct">全問正解！おめでとうございます！</p>`;
       }
-      html += `<button onclick="startCountdown()" style="background:#ff69b4;color:#fff;font-size:20px;padding:15px 40px;border-radius:14px;border:none;cursor:pointer;">もう一度プレイ</button>`;
+      html += `<button onclick="startCountdown()" style="background:#ff69b4;color:#fff;font-size:20px;padding:15px 40px;border-radius:14px;border:none;cursor:pointer;">もう一度プレイ</button><hr/>`;
 
       const report=document.getElementById("finalReport");
       report.innerHTML=html;
       report.style.display="block";
 
-      // ★ 50問解いた人だけ投稿フォーム
+      // ★ 50問解いた人だけ投稿フォーム（ここから）
       const answeredAll = (current >= questions.length);
       if (answeredAll) {
         report.innerHTML += buildSubmitFormHTML(score, totalTimeSec);
@@ -634,7 +693,10 @@
     }
 
     // 初期表示：ホームのランキングを出す
-    renderHomeTop10();
+    async function init(){
+      await renderHomeTop10();
+    }
+    init();
   </script>
 </body>
 </html>
