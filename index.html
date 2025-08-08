@@ -6,15 +6,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <style>
     body { font-family: sans-serif; text-align: center; background:#f4f4f4; padding:30px; margin:0; }
-    h1 { color:#444; margin:10px 0 6px; }
+    h1 { color:#444; margin: 10px 0 6px; }
 
-    /* 上部バー：音声トグル＋ホームTOP10更新 */
+    /* 上部バー：音声トグル＋ホームTOP10更新＋ホームへ */
     .topbar { display:flex; gap:10px; justify-content:center; align-items:center; flex-wrap:wrap; margin:8px 0 12px; }
     .sound-toggle { display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; background:#fff; border:1px solid #ddd; }
     .sound-toggle input { width:20px; height:20px; }
     #soundLabel { font-weight:600; }
     .btn { padding:8px 14px; border:none; border-radius:10px; cursor:pointer; }
     .btn-refresh { background:#17a2b8; color:#fff; }
+    .btn-home { background:#6f42c1; color:#fff; display:none; } /* ゲーム中に表示 */
 
     .question { font-size:24px; margin:20px 0; }
     .buttons { margin:20px; display:flex; gap:14px; flex-wrap:wrap; justify-content:center; }
@@ -65,10 +66,10 @@
     .result { font-size:20px; margin-top:16px; min-height:1.6em; }
 
     /* 操作ボタン（ゲーム中） */
-    #controlButtons { margin-top:20px; display:flex; gap:14px; justify-content:center; flex-wrap:wrap; }
-    #pauseButton { background:#ff9800; color:#fff; font-size:20px; padding:14px 22px; border-radius:12px; border:none; cursor:pointer; }
-    #quitButton  { background:#dc3545; color:#fff; font-size:20px; padding:14px 22px; border-radius:12px; border:none; cursor:pointer; }
-    #homeButton  { background:#6c757d; color:#fff; font-size:20px; padding:14px 22px; border-radius:12px; border:none; cursor:pointer; }
+    #controlButtons { margin-top:20px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+    #pauseButton { background:#ff9800; color:#fff; font-size:20px; padding:12px 22px; border-radius:12px; border:none; cursor:pointer; }
+    #quitButton  { background:#dc3545; color:#fff; font-size:20px; padding:12px 22px; border-radius:12px; border:none; cursor:pointer; }
+    #homeButton  { background:#6f42c1; color:#fff; font-size:20px; padding:12px 22px; border-radius:12px; border:none; cursor:pointer; }
 
     /* カウントダウン・オーバーレイ（フェード無し・拡大のみ） */
     #countOverlay{
@@ -97,27 +98,31 @@
     table.lead thead th { background:#f9f9f9; }
     .small-note{ font-size:12px; color:#666; }
 
-    /* メダルの大きさ（大きめ） */
-    .medal { font-size: 2.2em; line-height:1; display:inline-block; }
+    /* メダルの大きさ（さらに大） */
+    .medal { font-size: 2.6em; line-height:1; display:inline-block; }
     .ranknum { color:#666; }
 
     /* コメント入力UI */
     .flex { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
     .input { padding:8px; border:1px solid #ccc; border-radius:8px; }
     .btn-green { background:#28a745; color:#fff; border:none; border-radius:8px; padding:10px 14px; cursor:pointer; }
-    .btn-view { background:#6c757d; color:#fff; border:none; border-radius:8px; padding:10px 14px; cursor:pointer; display:none; } /* ←最初は非表示 */
+    .btn-view { background:#6c757d; color:#fff; border:none; border-radius:8px; padding:10px 14px; cursor:pointer; display:none; } /* ←送信後に表示 */
+
+    /* 終了後のホームに戻るボタン */
+    .btn-backhome { background:#6f42c1; color:#fff; border:none; border-radius:10px; padding:10px 14px; cursor:pointer; }
   </style>
 </head>
 <body>
   <h1>P.E.I.P. 分類クイズ</h1>
 
-  <!-- 上部：音声トグル＋ホームTOP10更新 -->
+  <!-- 上部：音声トグル＋ホームTOP10更新＋ホームへ -->
   <div class="topbar">
     <label class="sound-toggle" title="効果音 ON/OFF">
       <input type="checkbox" id="soundToggle" checked />
       <span id="soundLabel">音声: ON</span>
     </label>
     <button class="btn btn-refresh" id="btnRefreshHomeRank">TOP10更新</button>
+    <button class="btn btn-home" id="btnHomeTop" onclick="goHome()">スタート画面に戻る</button>
   </div>
 
   <!-- スタート前のホームランキング（ゲーム開始で消す） -->
@@ -175,7 +180,7 @@
   <div id="controlButtons" style="display:none;">
     <button id="pauseButton" onclick="togglePause()">⏸ 一時停止</button>
     <button id="quitButton"  onclick="quitGame()">⏹ やめる</button>
-    <button id="homeButton"  onclick="goHome()">⬅ スタート画面に戻る</button>
+    <button id="homeButton"  onclick="goHome()">🏠 スタート画面に戻る</button>
   </div>
 
   <!-- スタート -->
@@ -200,7 +205,7 @@
     /* ===== 設定 ===== */
     const labelMap = { P:"きもち", E:"まわり", I:"できること", Ph:"からだ＆病気" };
 
-    // Firebase 設定（あなたのプロジェクトの値）
+    // Firebase 設定（あなたのプロジェクトの値を反映済み）
     const firebaseConfig = {
       apiKey: "AIzaSyARGroRdf4DmJN5nOHdiVy-a9UCA1ruDPw",
       authDomain: "peip-quiz.firebaseapp.com",
@@ -303,7 +308,6 @@
     }
 
     /* ===== クイズ本体 ===== */
-    // 50問
     const questions = [
       { text: "孫に会いたいと思っているか？", answer: "P" },
       { text: "洗濯物にしわはあるか？", answer: "E" },
@@ -388,8 +392,9 @@
       const overlay = document.getElementById("countOverlay");
       const text = document.getElementById("countText");
 
-      // スタートでホームTOP10を隠す
+      // スタートでホームTOP10を隠す＆トップのホームボタン表示
       document.getElementById("homeBox").style.display = "none";
+      document.getElementById("btnHomeTop").style.display = "inline-block";
 
       document.getElementById("finalReport").style.display = "none";
       document.getElementById("gameInfo").style.display = "flex";
@@ -447,6 +452,22 @@
         cd.addEventListener('loadedmetadata', begin, {once:true});
         setTimeout(()=>{ if (cd.readyState < 1) begin(); }, 400);
       } else begin();
+    }
+
+    // ===== ホームへ戻す =====
+    function goHome(){
+      try{ clearInterval(elapsedTimer); }catch{}
+      paused=false; penaltyTime=0; totalPausedTime=0; wrongAnswers=[];
+      document.getElementById("gameInfo").style.display = "none";
+      document.getElementById("question").style.display = "none";
+      document.getElementById("answerButtons").style.display = "none";
+      document.getElementById("controlButtons").style.display = "none";
+      document.getElementById("finalReport").style.display = "none";
+      document.getElementById("startButton").style.display = "inline-block";
+      document.getElementById("startButton").disabled = false;
+      document.getElementById("homeBox").style.display = "block";
+      document.getElementById("btnHomeTop").style.display = "none"; // トップの「戻る」隠す
+      renderHomeTop10(); // TOP10更新
     }
 
     // ===== ゲーム =====
@@ -552,33 +573,6 @@
       }
     }
 
-    // ←NEW: スタート画面に戻る
-    function goHome(){
-      if(!confirm("スタート画面に戻りますか？（進行中の結果は消えます）")) return;
-      // タイマー停止
-      if(elapsedTimer) clearInterval(elapsedTimer);
-      // UI 初期化
-      document.getElementById("gameInfo").style.display = "none";
-      document.getElementById("question").style.display = "none";
-      document.getElementById("answerButtons").style.display = "none";
-      document.getElementById("controlButtons").style.display = "none";
-      document.getElementById("finalReport").style.display = "none";
-      // スタート画面表示 & TOP10復活
-      document.getElementById("homeBox").style.display = "block";
-      document.getElementById("startButton").style.display = "inline-block";
-      document.getElementById("startButton").disabled = false;
-      // 値初期化
-      current=0; score=0; wrongAnswers=[]; paused=false; totalPausedTime=0; penaltyTime=0;
-      document.getElementById("score").innerText = "0";
-      document.getElementById("questionNumber").innerText = "0";
-      document.getElementById("accuracy").innerText = "0.0%";
-      document.getElementById("elapsed").innerHTML = `0<span class="decimal">.00</span>`;
-      // TOP10再読込
-      renderHomeTop10();
-      // カウントダウンオーバーレイ消す念のため
-      document.getElementById("countOverlay").style.display = "none";
-    }
-
     function buildSubmitFormHTML(correct, elapsedSec) {
       return `
         <h4>ランキング投稿（50問すべて解いた方のみ）</h4>
@@ -591,7 +585,6 @@
         <div id="rankMessage" style="margin-top:8px;"></div>
         <div style="margin-top:16px;">
           <button id="btnShowRanking" class="btn-view">ランキングをみる</button>
-          <button onclick="goHome()" class="btn-view" style="display:inline-block;background:#6c757d;">⬅ スタート画面に戻る</button>
         </div>
         <div id="leaderboard" style="margin-top:16px;"></div>`;
     }
@@ -601,12 +594,12 @@
       const btnShow = document.getElementById('btnShowRanking');
       const msgEl = document.getElementById('rankMessage');
       const nameEl = document.getElementById('rankName');
-      const cmtEl  = document.getElementById('rankComment');
+      const comEl  = document.getElementById('rankComment');
 
       btn.onclick = async ()=>{
         btn.disabled = true;
         const name = nameEl?.value || "";
-        const comment = cmtEl?.value || "";
+        const comment = comEl?.value || "";
         if (comment.length > 20){
           msgEl.textContent = "コメントは20文字以内で入力してください。";
           btn.disabled = false;
@@ -615,12 +608,14 @@
         try{
           await submitScoreToFirestore({ name, comment, correct, elapsedSec });
           msgEl.textContent = "送信完了しました。";
-          // 編集不可にする
-          if(nameEl){ nameEl.readOnly = true; nameEl.classList.add('disabled'); }
-          if(cmtEl){  cmtEl.readOnly  = true; cmtEl.classList.add('disabled'); }
+
+          /* 送信後は編集不可にする（ご要望） */
+          if (nameEl) { nameEl.disabled = true; }
+          if (comEl)  { comEl.disabled  = true; comEl.readOnly = true; }
           btn.textContent = "送信済み";
           btn.disabled = true;
-          // 「ランキングをみる」ボタンを出す
+
+          /* 送信後にだけ「ランキングをみる」ボタンを表示 */
           btnShow.style.display = 'inline-block';
           btnShow.onclick = showFullRankingAfterSubmit;
         }catch(e){
@@ -658,14 +653,11 @@
       }else{
         html += `<p class="correct">全問正解！おめでとうございます！</p>`;
       }
-
-      // 再プレイ & ホーム
       html += `
-        <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
-          <button onclick="startCountdown()" style="background:#ff69b4;color:#fff;font-size:18px;padding:12px 20px;border-radius:12px;border:none;cursor:pointer;">もう一度プレイ</button>
-          <button onclick="goHome()" style="background:#6c757d;color:#fff;font-size:18px;padding:12px 20px;border-radius:12px;border:none;cursor:pointer;">⬅ スタート画面に戻る</button>
-        </div>
-      `;
+        <div style="margin-top:12px;">
+          <button class="btn-backhome" onclick="goHome()">🏠 スタート画面に戻る</button>
+          <button onclick="startCountdown()" style="background:#ff69b4;color:#fff;font-size:18px;padding:10px 20px;border-radius:10px;border:none;cursor:pointer;">もう一度プレイ</button>
+        </div>`;
 
       const report=document.getElementById("finalReport");
       report.innerHTML=html;
