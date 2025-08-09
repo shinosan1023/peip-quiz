@@ -110,7 +110,7 @@
   <div id="startArea">
     <div style="text-align:center; margin:8px 0;">
       <h2 style="margin:6px 0;">ランキング TOP10（タイムが短い順）</h2>
-      <small>※ 50問完走者の中から、タイム → 正解数 → 日時 で並べています</small>
+      <small>※ <b>完走者</b>（同じ問題数）の中から、タイム → 正解数 → 日時 で並べています</small>
     </div>
     <div id="top10Box">読み込み中...</div>
     <div id="startButtons">
@@ -187,7 +187,7 @@
 
   <script>
   /**********************
-   * Firebase 設定（いただいた構成を反映）
+   * Firebase 設定（あなたの構成で固定）
    **********************/
   const firebaseConfig = {
     apiKey: "AIzaSyARGroRdf4DmJN5nOHdiVy-a9UCA1ruDPw",
@@ -202,7 +202,7 @@
   const db = firebase.firestore();
 
   /**********************
-   * 共通ユーティリティ
+   * ユーティリティ
    **********************/
   const labelMap = { P:"きもち", E:"まわり", I:"できること", Ph:"からだ＆病気" };
 
@@ -217,54 +217,10 @@
     try{
       const d=new Date(iso);
       const z=n=>String(n).padStart(2,'0');
-      // 秒は表示しない（分まで）
       return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())} ${z(d.getHours())}:${z(d.getMinutes())}`;
     }catch{return "";}
   };
   const esc = (s)=>String(s||"").replace(/[&<>"'`=\/]/g,c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','/':'&#x2F;','=':'&#x3D;','`':'&#x60;' }[c]));
-
-  /**********************
-   * ランキング（完走者・タイム昇順）
-   * 並び順：time asc → correct desc → createdAt asc
-   **********************/
-  async function fetchTop10ByTime(){
-    const snap = await db.collection('scores')
-      .orderBy('time','asc')
-      .orderBy('correct','desc')
-      .orderBy('createdAt','asc')
-      .limit(10)
-      .get();
-    const list=[]; snap.forEach(d=>list.push({ id:d.id, ...d.data() }));
-    return list;
-  }
-
-  async function renderTop10(){
-    const box=document.getElementById('top10Box');
-    box.textContent="読み込み中...";
-    try{
-      const rows=await fetchTop10ByTime();
-      if(!rows.length){ box.textContent="まだ記録がありません"; return; }
-      let html = `<table>
-        <thead>
-          <tr><th>順位</th><th>名前</th><th class="num">正解</th><th class="num">タイム</th><th>日時</th><th>コメント</th></tr>
-        </thead><tbody>`;
-      rows.forEach((r,i)=>{
-        html += `<tr>
-          <td>${crown(i+1)}</td>
-          <td>${esc(r.name)||"名無し"}</td>
-          <td class="num">${Number(r.correct)||0}</td>
-          <td class="num">${fmtTime(r.time)}</td>
-          <td>${fmtDate(r.createdAtLocal)}</td>
-          <td>${esc(r.comment)||""}</td>
-        </tr>`;
-      });
-      html += `</tbody></table>`;
-      box.innerHTML = html;
-    }catch(e){
-      console.error(e);
-      box.textContent="ランキング取得に失敗しました。";
-    }
-  }
 
   /**********************
    * 問題（50問）
@@ -321,6 +277,7 @@
     { text: "食事の際にこだわりの食器や場所はあるか？", answer: "P" },
     { text: "居室の換気状況", answer: "E" }
   ];
+  const TOTAL_QUESTIONS = questions.length;
 
   /**********************
    * ゲーム状態
@@ -366,13 +323,12 @@
   const EPS = 0.015;
 
   function startCountdown(){
-    // スタート画面を出しつつ、オーバーレイ表示
+    // スタート画面のTOP10は表示のまま。開始直前に非表示にする
+    document.getElementById("startButton").disabled = true;
+
     const cd = document.getElementById("countdownSound");
     const overlay = document.getElementById("countOverlay");
     const text = document.getElementById("countText");
-
-    // スタート画面のTOP10は表示のまま。開始直前に非表示にする
-    document.getElementById("startButton").disabled = true;
 
     overlay.style.display = "flex";
     let idx = 0;
@@ -404,7 +360,6 @@
             requestAnimationFrame(tick);
           } else {
             overlay.style.display = "none";
-            // ここでスタート画面を消してゲーム開始
             beginGame();
           }
         };
@@ -450,7 +405,7 @@
     current = 0; score = 0; penaltyTime = 0; wrongList = [];
     paused=false; pauseStartTime=0; totalPausedTime=0;
 
-    document.getElementById('totalQuestions').textContent = questions.length;
+    document.getElementById('totalQuestions').textContent = TOTAL_QUESTIONS;
     document.getElementById('score').textContent = score;
     document.getElementById('accuracy').textContent = "0.0%";
     document.getElementById('result').textContent = "";
@@ -467,7 +422,7 @@
   }
 
   function showQuestion(){
-    if(current >= questions.length){
+    if(current >= TOTAL_QUESTIONS){
       endGame();
       return;
     }
@@ -526,6 +481,51 @@
   }
 
   /**********************
+   * ランキング（完走者のみ・同じ問題数）
+   * 並び順：time asc → correct desc → createdAt asc
+   **********************/
+  async function fetchTop10ByTime(){
+    const snap = await db.collection('scores')
+      .where('completed','==', true)
+      .where('totalQuestions','==', TOTAL_QUESTIONS)
+      .orderBy('time','asc')
+      .orderBy('correct','desc')
+      .orderBy('createdAt','asc')
+      .limit(10)
+      .get();
+    const list=[]; snap.forEach(d=>list.push({ id:d.id, ...d.data() }));
+    return list;
+  }
+
+  async function renderTop10(){
+    const box=document.getElementById('top10Box');
+    box.textContent="読み込み中...";
+    try{
+      const rows=await fetchTop10ByTime();
+      if(!rows.length){ box.textContent="まだ記録がありません"; return; }
+      let html = `<table>
+        <thead>
+          <tr><th>順位</th><th>名前</th><th class="num">正解</th><th class="num">タイム</th><th>日時</th><th>コメント</th></tr>
+        </thead><tbody>`;
+      rows.forEach((r,i)=>{
+        html += `<tr>
+          <td>${crown(i+1)}</td>
+          <td>${esc(r.name)||"名無し"}</td>
+          <td class="num">${Number(r.correct)||0}</td>
+          <td class="num">${fmtTime(r.time)}</td>
+          <td>${fmtDate(r.createdAtLocal)}</td>
+          <td>${esc(r.comment)||""}</td>
+        </tr>`;
+      });
+      html += `</tbody></table>`;
+      box.innerHTML = html;
+    }catch(e){
+      console.error(e);
+      box.textContent="ランキング取得に失敗しました。";
+    }
+  }
+
+  /**********************
    * ゲーム終了 → Firestore記録 → 順位計算
    **********************/
   async function endGame(){
@@ -539,9 +539,9 @@
 
     // 合計時間（停止分を除き、ペナルティを加算）
     const totalTimeSec = Number(((Date.now() - startTime - totalPausedTime + penaltyTime)/1000).toFixed(2));
-    const percent = ((score / questions.length) * 100).toFixed(1);
+    const percent = ((score / TOTAL_QUESTIONS) * 100).toFixed(1);
 
-    // まず記録保存（完走者）
+    // 記録保存（完走者として保存）
     let myDocId = null;
     try{
       const docRef = await db.collection('scores').add({
@@ -549,6 +549,8 @@
         comment: "",
         correct: score,
         time: totalTimeSec,
+        totalQuestions: TOTAL_QUESTIONS,
+        completed: true,
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
         createdAtLocal: new Date().toISOString()
       });
@@ -557,22 +559,26 @@
       console.error(e);
     }
 
-    // 全体の順位（完走者の中）：time asc → correct desc → createdAt asc
+    // 「同じ問題数」かつ「完走者」だけで順位計算
     let myRank = null, total = 0;
     try{
       const snap = await db.collection('scores')
-        .orderBy('time','asc').orderBy('correct','desc').orderBy('createdAt','asc')
+        .where('completed','==', true)
+        .where('totalQuestions','==', TOTAL_QUESTIONS)
+        .orderBy('time','asc')
+        .orderBy('correct','desc')
+        .orderBy('createdAt','asc')
         .get();
       snap.forEach((d,i)=>{ total++; if(d.id===myDocId) myRank=i+1; });
     }catch(e){ console.error(e); }
 
     let html = `<h3>結果発表</h3>
-      <p>正解数: <strong>${score}</strong> / ${questions.length}</p>
+      <p>正解数: <strong>${score}</strong> / ${TOTAL_QUESTIONS}</p>
       <p>正解率: <strong>${percent}%</strong></p>
       <p>かかった時間: <strong>${totalTimeSec.toFixed(2)}秒</strong></p>`;
 
     if(myRank){
-      html += `<p>あなたの順位（完走者中）: <strong>${myRank}</strong> / 全<strong>${total}</strong></p>`;
+      html += `<p>あなたの順位（完走者・${TOTAL_QUESTIONS}問中）: <strong>${myRank}</strong> / 全<strong>${total}</strong></p>`;
     }
 
     if(wrongList.length){
@@ -650,12 +656,10 @@
   }
 
   /**********************
-   * 画面遷移：スタート画面へ
+   * スタート画面に戻る
    **********************/
   function goHome(){
-    // カウントダウン停止表示を念のため消す
     document.getElementById('countOverlay').style.display = "none";
-    // 表示切り替え
     document.getElementById('finalReport').style.display = "none";
     document.getElementById('gameArea').style.display = "none";
     document.getElementById('startArea').style.display = "block";
