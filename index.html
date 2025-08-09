@@ -3,105 +3,152 @@
 <head>
   <meta charset="UTF-8" />
   <title>P.E.I.P. 分類クイズ</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <style>
-    :root{
-      --pink:#ff69b4;
-    }
-    body{font-family:sans-serif;background:#f4f4f4;margin:0;padding:30px;text-align:center}
-    h1{color:#444;margin:10px 0 16px}
-    .topbar{display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap;margin-bottom:8px}
-    .sound-toggle{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;background:#fff;border:1px solid #ddd}
-    .card{background:#fff;border:1px solid #e6e6e6;border-radius:14px;max-width:860px;margin:10px auto;text-align:left}
-    .card h3{margin:0;padding:14px 18px;border-bottom:1px solid #eee}
-    .card .content{padding:14px 18px}
-    .btn{display:inline-block;padding:14px 28px;border-radius:14px;border:none;cursor:pointer;font-size:18px}
-    .btn-primary{background:var(--pink);color:#fff}
-    .btn-outline{background:#fff;border:1px solid #ccc}
-    .small{font-size:13px;color:#666}
-    .flex{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    .center{justify-content:center}
-    .right{justify-content:flex-end}
-    /* 丸ボタン */
-    .buttons{margin:20px;display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+    body { font-family: sans-serif; text-align: center; background:#f4f4f4; padding:30px; margin:0; }
+    h1 { color:#444; }
+
+    /* 上部：音声トグル＋スタートに戻る */
+    .topbar { display:flex; gap:10px; justify-content:center; align-items:center; flex-wrap:wrap; margin-bottom:8px; }
+    .sound-toggle { display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; background:#fff; border:1px solid #ddd; }
+    .sound-toggle input { width:20px; height:20px; }
+    #soundLabel { font-weight:600; }
+    #backToStart { background:#6c757d; color:#fff; border:none; padding:8px 14px; border-radius:10px; cursor:pointer; }
+
+    .question { font-size:24px; margin:20px 0; }
+    .buttons { margin:20px; display:flex; gap:14px; flex-wrap:wrap; justify-content:center; }
+
+    /* 丸ボタン（やや小さめ） */
     .btn-circle{
-      width: 32vw; height: 32vw; max-width: 145px; max-height:145px;
-      min-width: 110px; min-height:110px;border-radius:50%;
-      display:flex;align-items:center;justify-content:center;
-      padding:10px;text-align:center;line-height:1.25;white-space:normal;word-break:keep-all;
-      box-shadow:0 4px 10px rgba(0,0,0,.08);transition:transform .06s ease-out, filter .1s ease;border:none;color:#fff;cursor:pointer
+      width: 34vw; height: 34vw; max-width: 150px; max-height: 150px;
+      min-width: 110px; min-height: 110px;
+      border-radius: 50%;
+      display:flex; align-items:center; justify-content:center;
+      padding: 10px;
+      text-align:center; line-height:1.25;
+      white-space:normal; word-break:keep-all;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+      transition: transform .06s ease-out, filter .1s ease;
+      border:none; cursor:pointer; color:#fff;
     }
-    .btn-circle:active{transform:scale(.98);filter:brightness(.96)}
-    .btn-content{display:flex;flex-direction:column;gap:2px;align-items:center;width:100%}
-    .line1{font-weight:800;font-size:1.15em}
-    .line2,.line3{font-weight:700;font-size:.85em}
-    .P{background:#e74c3c}.E{background:#3498db}.I{background:#f1c40f;color:#333}.Ph{background:#2ecc71}
+    .btn-circle:active{ transform: scale(0.98); filter: brightness(0.96); }
+    .btn-content{ display:flex; flex-direction:column; gap:2px; align-items:center; width:100%; }
+    .line1{ font-weight:800; font-size:1.15em; }
+    .line2{ font-weight:700; font-size:.85em; opacity:.98; }
+    .line3{ font-weight:700; font-size:.85em; opacity:.95; }
+
+    /* 色（P/E/I/Ph） */
+    .P  { background:#e74c3c; }              /* きもち・赤 */
+    .E  { background:#3498db; }              /* まわり・青 */
+    .I  { background:#f1c40f; color:#333; }  /* できること・黄（文字濃） */
+    .Ph { background:#2ecc71; }              /* からだ・緑 */
+
+    /* スタートボタン（ピンク） */
+    #startButton { background:#ff69b4; color:#fff; font-size:20px; padding:15px 40px; border-radius:14px; border:none; cursor:pointer; }
+
     /* 情報バー */
-    .info{font-size:18px;margin-top:10px;display:none;gap:16px;align-items:center;justify-content:center;flex-wrap:wrap}
-    .badge{display:inline-block;padding:6px 14px;border-radius:999px;border:2px solid; font-weight:800}
-    .elapsed{background:#e3f7ff;border-color:#5bc0de;color:#0b6d85}
-    .acc{background:#fff6e0;border-color:#f0ad4e;color:#856404}
-    #elapsed{font-size:34px} #elapsed .decimal{font-size:20px;vertical-align:super}
-    .question{font-size:24px;margin:20px 0;display:none}
-    .result{font-size:20px;margin-top:16px;min-height:1.6em}
-    /* 操作 */
-    #controlButtons{display:none;margin-top:10px;gap:10px;justify-content:center;flex-wrap:wrap}
-    #pauseButton{background:#ff9800;color:#fff} #quitButton{background:#dc3545;color:#fff}
-    #pauseButton,#quitButton,#backToTopBtn{padding:12px 22px;border:none;border-radius:12px;font-size:16px;cursor:pointer}
-    #backToTopBtn{background:#6c757d;color:#fff}
+    .info { font-size:18px; margin-top:10px; display:flex; gap:16px; align-items:center; justify-content:center; flex-wrap:wrap; }
+
+    /* 経過時間バッジ */
+    .elapsed-badge {
+      display:inline-block; padding:6px 14px; border-radius:999px;
+      background:#e3f7ff; border:2px solid #5bc0de; color:#0b6d85;
+      font-weight:800; letter-spacing:0.5px;
+    }
+    #elapsed { font-size:34px; }
+    #elapsed .decimal { font-size:20px; vertical-align:super; }
+
+    /* 正解率バッジ */
+    .acc-badge {
+      display:inline-block; padding:6px 14px; border-radius:999px;
+      background:#fff6e0; border:2px solid #f0ad4e; color:#856404; font-weight:800;
+    }
+
+    .result { font-size:20px; margin-top:16px; min-height:1.6em; }
+
     /* レポート */
-    .report{display:none;text-align:left;margin:12px auto;max-width:860px}
-    .report h3{border-bottom:2px solid #ccc;padding-bottom:5px}
-    .report-item{margin-bottom:12px}
-    .wrong{color:#d9534f}.correct{color:#2e7d32}
-    /* カウントダウン */
-    #countOverlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.65);color:#fff;z-index:9999;font-weight:900;text-shadow:0 4px 14px rgba(0,0,0,.6);user-select:none;font-size:120px}
-    @keyframes popscale{0%{transform:scale(.7)}60%{transform:scale(1.15)}100%{transform:scale(1.0)}} .pop{animation:popscale .35s ease-out}
-    /* ランキング表 */
-    table.rank{width:100%;border-collapse:collapse}
-    .rank th,.rank td{padding:8px;border-bottom:1px solid #eee}
-    .rank tr:nth-child(odd){background:#fafafa}
-    .crown{font-size:22px} .big{font-size:28px} .gold{color:#e0b100}.silver{color:#9e9e9e}.bronze{color:#b87333}
-    .muted{color:#777}
+    .report { text-align:left; margin:20px auto; max-width:880px; }
+    .report h3 { border-bottom:2px solid #ccc; padding-bottom:5px; }
+    .report-item { margin-bottom:12px; }
+    .wrong { color:#d9534f; }
+    .correct { color:#2e7d32; }
+
+    /* 操作ボタン（大きく・目立つ） */
+    #controlButtons { margin-top:20px; display:flex; gap:20px; justify-content:center; flex-wrap:wrap; }
+    #pauseButton { background:#ff9800; color:#fff; font-size:22px; padding:16px 32px; border-radius:14px; border:none; cursor:pointer; }
+    #quitButton  { background:#dc3545; color:#fff; font-size:22px; padding:16px 32px; border-radius:14px; border:none; cursor:pointer; }
+
+    /* カウントダウン・オーバーレイ（フェード無し・拡大のみ） */
+    #countOverlay{
+      position:fixed; inset:0; display:none; align-items:center; justify-content:center;
+      background:rgba(0,0,0,.65); color:#fff; z-index:9999;
+      font-weight:900; text-shadow:0 4px 14px rgba(0,0,0,.6); user-select:none;
+      font-size:120px;
+    }
+    #countText { display:block; }
+    @keyframes popscale { 0%{transform:scale(.7);} 60%{transform:scale(1.15);} 100%{transform:scale(1);} }
+    .pop { animation: popscale .35s ease-out; }
+
+    /* スタート画面：ランキング */
+    #startTop10 {
+      max-width: 900px; margin: 20px auto; background:#fff; border:1px solid #eee; border-radius:12px; padding:16px;
+      box-shadow:0 4px 12px rgba(0,0,0,.05);
+    }
+    #startTop10 h3 { margin:0 0 10px; }
+    table.leader { width:100%; border-collapse:collapse; }
+    table.leader th, table.leader td { padding:8px; border-bottom:1px solid #f0f0f0; text-align:left; }
+    table.leader th { background:#fafafa; }
+    .rank-cell { text-align:right; width:60px; }
+    .time-cell, .correct-cell { text-align:right; width:120px; }
+    .crown { font-size: 28px; }      /* 大きめ */
+    .crown.gold { color:#DAA520; }   /* 金 */
+    .crown.silver { color:#B0B0B0;}  /* 銀 */
+    .crown.bronze { color:#8B4513;}  /* 茶 */
+
+    /* スタート画面の操作 */
+    #startControls { margin: 16px 0; display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+    #viewRankingBtn { background:#17a2b8; color:#fff; border:none; padding:10px 16px; border-radius:10px; cursor:pointer; }
+    #startButton { margin-top:8px; }
+
+    /* 投稿フォーム（TOP10入った人だけ） */
+    .rank-form { margin-top:18px; padding:12px; background:#fff; border-radius:10px; border:1px solid #eee; }
+    .rank-form input { padding:8px; border:1px solid #ccc; border-radius:8px; }
+    .rank-form small { color:#666; }
+    .muted { color:#666; }
   </style>
 </head>
 <body>
   <h1>P.E.I.P. 分類クイズ</h1>
 
-  <!-- スタート画面：音声トグル＆ランキング -->
-  <div id="startScreen">
-    <div class="topbar">
-      <label class="sound-toggle" title="効果音 ON/OFF">
-        <input type="checkbox" id="soundToggle" checked />
-        <span id="soundLabel">音声: ON</span>
-      </label>
-    </div>
-
-    <div class="card">
-      <h3 class="flex center">🏁 ランキング TOP10（全データ・タイム短い順）<span class="small" style="margin-left:8px">(正解数は参考表示)</span></h3>
-      <div class="content">
-        <div id="top10Area" class="small muted">読み込み中…</div>
-        <div class="flex right" style="margin-top:6px">
-          <button class="btn btn-outline" id="reloadTop10Btn">再読み込み</button>
-        </div>
-      </div>
-    </div>
-
-    <button class="btn btn-primary" id="startButton">スタート</button>
+  <div class="topbar">
+    <label class="sound-toggle" title="効果音 ON/OFF">
+      <input type="checkbox" id="soundToggle" checked />
+      <span id="soundLabel">音声: ON</span>
+    </label>
+    <button id="backToStart" onclick="goStart()">⟲ スタート画面に戻る</button>
   </div>
 
-  <!-- 情報表示 -->
-  <div class="info" id="gameInfo">
+  <!-- スタート画面のランキングTOP10（過去全データ、50問完走者の中から「タイム短い順」） -->
+  <div id="startTop10" style="display:block;">
+    <h3>ランキング TOP10（全期間｜50問完走者｜時間が短い順）</h3>
+    <div id="startTop10Table">読み込み中…</div>
+    <div id="startControls">
+      <button id="viewRankingBtn" onclick="refreshStartTop10()">ランキングをみる</button>
+    </div>
+  </div>
+
+  <!-- 情報バー（開始後に表示） -->
+  <div class="info" id="gameInfo" style="display:none;">
     <span>スコア: <strong id="score">0</strong></span>
     <span>問題: <strong id="questionNumber">0</strong> / <strong id="totalQuestions">0</strong></span>
-    <span class="badge elapsed">経過: <span id="elapsed">0<span class="decimal">.00</span></span> 秒</span>
-    <span class="badge acc">正解率: <strong id="accuracy">0.0%</strong></span>
+    <span class="elapsed-badge">経過時間: <span id="elapsed">0<span class="decimal">.00</span></span> 秒</span>
+    <span class="acc-badge">正解率: <strong id="accuracy">0.0%</strong></span>
   </div>
 
-  <!-- 問題 -->
-  <div class="question" id="question">問題を読み込み中...</div>
+  <!-- 問題文 -->
+  <div class="question" id="question" style="display:none;">問題を読み込み中...</div>
 
-  <!-- 回答ボタン -->
+  <!-- 回答ボタン（丸形・3行構成） -->
   <div class="buttons" id="answerButtons" style="display:none;">
     <button class="btn-circle P"  onclick="checkAnswer('P')">
       <span class="btn-content">
@@ -135,436 +182,559 @@
 
   <div class="result" id="result"></div>
 
-  <!-- 操作 -->
-  <div id="controlButtons">
-    <button id="pauseButton">⏸ 一時停止</button>
-    <button id="quitButton">⏹ やめる</button>
-    <button id="backToTopBtn">🏠 スタート画面へ</button>
+  <!-- 操作ボタン（停止/再開・終了） -->
+  <div id="controlButtons" style="display:none;">
+    <button id="pauseButton" onclick="togglePause()">⏸ 一時停止</button>
+    <button id="quitButton"  onclick="quitGame()">⏹ やめる</button>
   </div>
 
-  <!-- レポート -->
-  <div id="finalReport" class="report"></div>
+  <!-- スタート -->
+  <button id="startButton" onclick="startCountdown()">スタート</button>
 
-  <!-- カウントダウン -->
-  <div id="countOverlay"><span id="countText">3</span></div>
+  <!-- 結果レポート -->
+  <div id="finalReport" class="report" style="display:none;"></div>
 
   <!-- 効果音 -->
   <audio id="correctSound"   src="se_correct.mp3"  preload="auto"></audio>
   <audio id="wrongSound"     src="se_wrong.mp3"    preload="auto"></audio>
   <audio id="countdownSound" src="countdown.mp3"   preload="auto"></audio>
 
-  <!-- Firebase -->
+  <!-- カウントダウン表示 -->
+  <div id="countOverlay"><span id="countText">3</span></div>
+
+  <!-- Firebase（ランキング用） -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
   <script>
-  /* =========================
-     Firebase 初期化
-  ==========================*/
-  // ←あなたの firebaseConfig（storageBucket は appspot.com）
-  const firebaseConfig = {
-    apiKey: "AIzaSyARGroRdf4DmJN5nOHdiVy-a9UCA1ruDPw",
-    authDomain: "peip-quiz.firebaseapp.com",
-    projectId: "peip-quiz",
-    storageBucket: "peip-quiz.appspot.com",
-    messagingSenderId: "523666051548",
-    appId: "1:523666051548:web:2a84fc0f2163872b2eff19",
-    measurementId: "G-6049XMQEBK"
-  };
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
+    /* ==== ラベル ==== */
+    const labelMap = { P:"きもち", E:"まわり", I:"できること", Ph:"からだ＆病気" };
 
-  /* =========================
-     共通ユーティリティ
-  ==========================*/
-  const labelMap = { P:"きもち", E:"まわり", I:"できること", Ph:"からだ＆病気" };
-  function escapeHtml(s){return String(s).replace(/[&<>"'`=\/]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','/':'&#x2F;','=':'&#x3D;','`':'&#x60;'}[c]))}
-  function formatLocal(iso){
-    try{const d=new Date(iso);const z=n=>String(n).padStart(2,'0');
-      return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())} ${z(d.getHours())}:${z(d.getMinutes())}` // 秒は表示しない
-    }catch{return iso||""}
-  }
+    /* ==== Firebase 初期化（あなたの値をセット済み） ==== */
+    const firebaseConfig = {
+      apiKey: "AIzaSyARGroRdf4DmJN5nOHdiVy-a9UCA1ruDPw",
+      authDomain: "peip-quiz.firebaseapp.com",
+      projectId: "peip-quiz",
+      storageBucket: "peip-quiz.appspot.com",
+      messagingSenderId: "523666051548",
+      appId: "1:523666051548:web:2a84fc0f2163872b2eff19",
+      measurementId: "G-6049XMQEBK"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
 
-  /* =========================
-     スタート画面：TOP10
-  ==========================*/
-  // 全データから time 昇順 → correct 降順 → createdAt 昇順
-  async function fetchTop10ByTime(){
-    const snap = await db.collection('scores')
-      .orderBy('time','asc')
-      .orderBy('correct','desc')
-      .orderBy('createdAt','asc')
-      .limit(10).get();
-    const list=[]; snap.forEach(d=>list.push({id:d.id,...d.data()}));
-    return list;
-  }
-  async function displayTop10(){
-    const box = document.getElementById('top10Area');
-    box.textContent = '読み込み中…';
-    try{
-      const rows = await fetchTop10ByTime();
-      if(!rows.length){ box.textContent = 'まだ記録がありません。'; return; }
-      const tr = (r,i)=>{
-        const rank = i+1;
-        const crown = rank===1?`<span class="crown big gold">👑</span>`:
-                       rank===2?`<span class="crown big silver">👑</span>`:
-                       rank===3?`<span class="crown big bronze">👑</span>`:`${rank}`;
-        return `<tr>
-          <td style="text-align:right;width:70px">${crown}</td>
-          <td>${escapeHtml(r.name||'名無し')}</td>
-          <td style="text-align:right;width:110px">${Number(r.time).toFixed(2)}s</td>
-          <td style="text-align:right;width:90px">${Number(r.correct)||0}</td>
-          <td style="width:170px">${formatLocal(r.createdAtLocal)}</td>
-          <td class="muted">${escapeHtml(r.comment||'')}</td>
-        </tr>`;
+    /* ==== Firestore: TOP10（全期間｜50問完走者｜タイム昇順→正解降順→日時昇順） ==== */
+    async function fetchTop10ByTime() {
+      const snap = await db.collection('scores')
+        .where('total', '==', 50)
+        .orderBy('time', 'asc')
+        .orderBy('correct', 'desc')
+        .orderBy('createdAt', 'asc')
+        .limit(10)
+        .get();
+
+      const list = [];
+      snap.forEach(doc => list.push({ id: doc.id, ...doc.data() }));
+      return list;
+    }
+
+    // スタート画面にTOP10を描画
+    async function refreshStartTop10(){
+      const host = document.getElementById('startTop10Table');
+      host.textContent = "読み込み中…";
+      try{
+        const top = await fetchTop10ByTime();
+        if(!top.length){
+          host.textContent = "まだ記録がありません。最初の挑戦者になりましょう！";
+          return;
+        }
+        host.innerHTML = buildTop10Table(top, {showCrown:true});
+      }catch(e){
+        console.error(e);
+        host.innerHTML = '読み込みに失敗しました。<br>初回は「複合インデックスが必要」と表示されることがあります。その場合はリンクから <strong>time(昇順) → correct(降順) → createdAt(昇順)</strong> でインデックスを作成してください。';
+      }
+    }
+
+    function buildTop10Table(rows, {showCrown=false}={}){
+      const crown = (i)=>{
+        if(!showCrown) return '';
+        if(i===0) return '<span class="crown gold">👑</span>';
+        if(i===1) return '<span class="crown silver">👑</span>';
+        if(i===2) return '<span class="crown bronze">👑</span>';
+        return '';
       };
-      box.innerHTML = `
-        <table class="rank">
+      return `
+        <table class="leader">
           <thead>
-            <tr style="background:#f9f9f9">
-              <th style="text-align:right">順位</th><th>名前</th>
-              <th style="text-align:right">タイム</th>
-              <th style="text-align:right">正解</th>
-              <th>日時</th><th>コメント</th>
+            <tr>
+              <th class="rank-cell">順位</th>
+              <th>名前</th>
+              <th class="correct-cell">正解数</th>
+              <th class="time-cell">タイム</th>
+              <th>日時</th>
+              <th>コメント</th>
             </tr>
           </thead>
-          <tbody>${rows.map(tr).join('')}</tbody>
+          <tbody>
+            ${rows.map((r,i)=>`
+              <tr>
+                <td class="rank-cell">${i+1} ${crown(i)}</td>
+                <td>${escapeHtml(r.name||"名無し")}</td>
+                <td class="correct-cell">${Number(r.correct)||0}</td>
+                <td class="time-cell">${Number(r.time).toFixed(2)}s</td>
+                <td>${formatLocalNoSec(r.commentTimestamp || r.createdAtLocal)}</td>
+                <td>${escapeHtml(r.comment||"")}</td>
+              </tr>`).join("")}
+          </tbody>
         </table>`;
-    }catch(e){ console.error(e); box.textContent='取得に失敗しました。'; }
-  }
-  document.getElementById('reloadTop10Btn').onclick = displayTop10;
-  displayTop10();
+    }
 
-  /* =========================
-     音声 ON/OFF
-  ==========================*/
-  let soundEnabled = true;
-  const soundToggle=document.getElementById('soundToggle');
-  const soundLabel=document.getElementById('soundLabel');
-  soundToggle.addEventListener('change',()=>{
-    soundEnabled=soundToggle.checked;
-    soundLabel.textContent=soundEnabled?'音声: ON':'音声: OFF';
-  });
+    // エスケープ & 日付整形（秒なし）
+    function escapeHtml(s){ return String(s||"").replace(/[&<>"'`=\/]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','/':'&#x2F;','=':'&#x3D;','`':'&#x60;'}[c])); }
+    function formatLocalNoSec(iso){
+      try {
+        const d=new Date(iso);
+        const z=n=>String(n).padStart(2,'0');
+        return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())} ${z(d.getHours())}:${z(d.getMinutes())}`;
+      } catch { return iso || ""; }
+    }
 
-  /* =========================
-     カウントダウン
-  ==========================*/
-  const COUNTDOWN_MARKERS=[
-    {time:0.00,label:'3'},
-    {time:0.90,label:'2'},
-    {time:1.80,label:'1'},
-    {time:2.65,label:'スタート！'}
-  ];
-  const HOLD_AFTER_START=1.80, EPS=0.015;
+    // スタート画面初期化
+    document.addEventListener('DOMContentLoaded', refreshStartTop10);
 
-  function startCountdown(){
-    // スタート画面を隠す
-    document.getElementById('startScreen').style.display='none';
-    // ゲームUI初期化（タイマ開始は beginGame 内）
-    document.getElementById('gameInfo').style.display='flex';
-    document.getElementById('question').style.display='none';
-    document.getElementById('answerButtons').style.display='none';
-    document.getElementById('controlButtons').style.display='flex';
-    document.getElementById('result').textContent='';
+    /* ==== ゲーム本体 ==== */
 
-    const cd = document.getElementById('countdownSound');
-    const overlay=document.getElementById('countOverlay');
-    const text=document.getElementById('countText');
-    overlay.style.display='flex';
+    const questions = [
+      { text: "孫に会いたいと思っているか？", answer: "P" },
+      { text: "洗濯物にしわはあるか？", answer: "E" },
+      { text: "トイレで立位をとることができるか？", answer: "I" },
+      { text: "便秘はないか？", answer: "Ph" },
+      { text: "朝食の飲み物にこだわりはあるか？", answer: "P" },
+      { text: "居室の手すりにぐらつきはないか？", answer: "E" },
+      { text: "一人で歯磨きはできるか？", answer: "I" },
+      { text: "むせこみはないか？", answer: "Ph" },
+      { text: "デイサービスを楽しみにしているか？", answer: "P" },
+      { text: "冷蔵庫の中に消費期限が過ぎた食品はないか？", answer: "E" },
+      { text: "歩行器を使えば自立歩行はできるか？", answer: "I" },
+      { text: "足にむくみはないか？", answer: "Ph" },
+      { text: "好きな音楽は何か？", answer: "P" },
+      { text: "洗面所の床は濡れていないか？", answer: "E" },
+      { text: "トイレのボタンを操作することはできるか？", answer: "I" },
+      { text: "肌は乾燥していないか？", answer: "Ph" },
+      { text: "外出できるようになりたいという希望はあるか？", answer: "P" },
+      { text: "居室のベッドは介助用ベッドか？", answer: "E" },
+      { text: "自分で着替えはできるか？", answer: "I" },
+      { text: "食欲の有無", answer: "Ph" },
+      { text: "昔していた仕事は何か？", answer: "P" },
+      { text: "今使用している福祉用具は何か？", answer: "E" },
+      { text: "自分で電話をかけることができるか？", answer: "I" },
+      { text: "視力はどの程度か？", answer: "Ph" },
+      { text: "食べたいものはあるか？", answer: "P" },
+      { text: "自宅で10ミリ以上の段差があるのはどこか？", answer: "E" },
+      { text: "自分でお茶を入れて飲むことはできるか？", answer: "I" },
+      { text: "夜間の頻尿の有無", answer: "Ph" },
+      { text: "習慣となっていることは何か？", answer: "P" },
+      { text: "介護保険制度で利用しているサービスは何か？", answer: "E" },
+      { text: "朝の体操で体を動かすことはできているか？", answer: "I" },
+      { text: "ふらつきはないか？", answer: "I" },  /* 自立に変更 */
+      { text: "趣味（編み物）を再開したいという思いはあるか？", answer: "P" },
+      { text: "居室の温度・室温は？", answer: "E" },
+      { text: "自分で食事を準備することはできるか？", answer: "I" },
+      { text: "腰痛など体の痛みはないか？", answer: "Ph" },
+      { text: "調味料にこだわりはあるか？", answer: "P" },
+      { text: "テレビのボリュームはいくつか？", answer: "E" },
+      { text: "自分で薬は管理できているか？", answer: "I" },
+      { text: "まぶたに目やにはついていないか？", answer: "Ph" },
+      { text: "どのような環境で寝たい思っているか？", answer: "P" },
+      { text: "ベッドサイドにコールボタンなどの有無", answer: "E" },
+      { text: "肘なしの椅子でも座位をとることはできているか？", answer: "I" },
+      { text: "巻き爪はないか？", answer: "Ph" },
+      { text: "何をしている時が幸せを感じる時か？", answer: "P" },
+      { text: "近所の人との交流はあるか？", answer: "E" },
+      { text: "買い物リストを自分で書くことはできるか？", answer: "I" },
+      { text: "夜間に不眠の有無", answer: "Ph" },
+      { text: "食事の際にこだわりの食器や場所はあるか？", answer: "P" },
+      { text: "居室の換気状況", answer: "E" }
+    ];
 
-    let idx=0; const last=COUNTDOWN_MARKERS[COUNTDOWN_MARKERS.length-1].time;
-    const endTime = last + HOLD_AFTER_START + 0.05;
+    function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } }
 
-    const showLabel=(s)=>{ if(text.textContent===s) return;
-      text.textContent=s; text.classList.remove('pop'); void text.offsetWidth; text.classList.add('pop'); };
+    let current=0, score=0, wrongAnswers=[];
+    let startTime=0, elapsedTimer=null;
+    let paused=false, pauseStartTime=0, totalPausedTime=0;
+    let penaltyTime = 0; // 不正解ペナルティ累計（ms）
+    let soundEnabled = true;
 
-    const begin=()=>{
-      const startTs=performance.now();
-      if(soundEnabled){ try{cd.currentTime=0; cd.play().catch(()=>{});}catch{} }
-      const tick=()=>{
-        const elapsed=(performance.now()-startTs)/1000;
-        const t = soundEnabled ? (cd.currentTime||elapsed) : elapsed;
-        while(idx<COUNTDOWN_MARKERS.length && t+EPS>=COUNTDOWN_MARKERS[idx].time){
-          showLabel(COUNTDOWN_MARKERS[idx].label); idx++;
-        }
-        if(elapsed<endTime){ requestAnimationFrame(tick); }
-        else{ overlay.style.display='none'; beginGame(); }
+    // 音声ON/OFF
+    const soundToggle = document.getElementById('soundToggle');
+    const soundLabel  = document.getElementById('soundLabel');
+    soundToggle.addEventListener('change', ()=>{
+      soundEnabled = soundToggle.checked;
+      soundLabel.textContent = soundEnabled ? '音声: ON' : '音声: OFF';
+    });
+
+    // カウントダウン：実測マーカー（「スタート！」1.8秒保持）
+    const COUNTDOWN_MARKERS = [
+      { time: 0.00, label: "3" },
+      { time: 0.90, label: "2" },
+      { time: 1.80, label: "1" },
+      { time: 2.65, label: "スタート！" }
+    ];
+    const HOLD_AFTER_START = 1.80;
+    const EPS = 0.015;
+
+    function startCountdown(){
+      // スタート画面のTOP10は消す
+      document.getElementById('startTop10').style.display = "none";
+
+      const cd = document.getElementById("countdownSound");
+      const overlay = document.getElementById("countOverlay");
+      const text = document.getElementById("countText");
+
+      // UI 初期化
+      document.getElementById("finalReport").style.display = "none";
+      document.getElementById("gameInfo").style.display = "flex";
+      document.getElementById("question").style.display = "none";
+      document.getElementById("answerButtons").style.display = "none";
+      document.getElementById("controlButtons").style.display = "none";
+      document.getElementById("result").textContent = "";
+      document.getElementById("startButton").disabled = true;
+
+      overlay.style.display = "flex";
+
+      let idx = 0;
+      const lastMarker = COUNTDOWN_MARKERS[COUNTDOWN_MARKERS.length-1].time;
+      const endTime = lastMarker + HOLD_AFTER_START + 0.05;
+
+      const showLabel = (s)=>{
+        if (text.textContent === s) return;
+        text.textContent = s;
+        text.classList.remove('pop');
+        void text.offsetWidth;
+        text.classList.add('pop');
       };
-      tick();
-    };
-    if(cd.readyState<1){ cd.addEventListener('loadedmetadata',begin,{once:true}); setTimeout(()=>{if(cd.readyState<1) begin();},400); }
-    else begin();
-  }
-  document.getElementById('startButton').onclick = startCountdown;
 
-  /* =========================
-     ゲーム本体
-  ==========================*/
-  // 50問（ご依頼の文言＆修正反映）
-  const questions = [
-    { text: "孫に会いたいと思っているか？", answer: "P" },
-    { text: "洗濯物にしわはあるか？", answer: "E" },
-    { text: "トイレで立位をとることができるか？", answer: "I" },
-    { text: "便秘はないか？", answer: "Ph" },
-    { text: "朝食の飲み物にこだわりはあるか？", answer: "P" },
-    { text: "居室の手すりにぐらつきはないか？", answer: "E" },
-    { text: "一人で歯磨きはできるか？", answer: "I" },
-    { text: "むせこみはないか？", answer: "Ph" },
-    { text: "デイサービスを楽しみにしているか？", answer: "P" },
-    { text: "冷蔵庫の中に消費期限が過ぎた食品はないか？", answer: "E" },
-    { text: "歩行器を使えば自立歩行はできるか？", answer: "I" },
-    { text: "足にむくみはないか？", answer: "Ph" },
-    { text: "好きな音楽は何か？", answer: "P" },
-    { text: "洗面所の床は濡れていないか？", answer: "E" },
-    { text: "トイレのボタンを操作することはできるか？", answer: "I" },
-    { text: "肌は乾燥していないか？", answer: "Ph" },
-    { text: "外出できるようになりたいという希望はあるか？", answer: "P" },
-    { text: "居室のベッドは介助用ベッドか？", answer: "E" },
-    { text: "自分で着替えはできるか？", answer: "I" },
-    { text: "食欲の有無", answer: "Ph" },
-    { text: "昔していた仕事は何か？", answer: "P" },
-    { text: "今使用している福祉用具は何か？", answer: "E" },
-    { text: "自分で電話をかけることができるか？", answer: "I" },
-    { text: "視力はどの程度か？", answer: "Ph" },
-    { text: "食べたいものはあるか？", answer: "P" },
-    { text: "自宅で10ミリ以上の段差があるのはどこか？", answer: "E" },
-    { text: "自分でお茶を入れて飲むことはできるか？", answer: "I" },
-    { text: "夜間の頻尿の有無", answer: "Ph" },
-    { text: "習慣となっていることは何か？", answer: "P" },
-    { text: "介護保険制度で利用しているサービスは何か？", answer: "E" },
-    { text: "朝の体操で体を動かすことはできているか？", answer: "I" },
-    { text: "ふらつきはないか？", answer: "I" },
-    { text: "趣味（編み物）を再開したいという思いはあるか？", answer: "P" },
-    { text: "居室の温度・室温は？", answer: "E" },
-    { text: "自分で食事を準備することはできるか？", answer: "I" },
-    { text: "腰痛など体の痛みはないか？", answer: "Ph" },
-    { text: "調味料にこだわりはあるか？", answer: "P" },
-    { text: "テレビのボリュームはいくつか？", answer: "E" },
-    { text: "自分で薬は管理できているか？", answer: "I" },
-    { text: "まぶたに目やにはついていないか？", answer: "Ph" },
-    { text: "どのような環境で寝たい思っているか？", answer: "P" },
-    { text: "ベッドサイドにコールボタンなどの有無", answer: "E" },
-    { text: "肘なしの椅子でも座位をとることはできているか？", answer: "I" },
-    { text: "巻き爪はないか？", answer: "Ph" },
-    { text: "何をしている時が幸せを感じる時か？", answer: "P" },
-    { text: "近所の人との交流はあるか？", answer: "E" },
-    { text: "買い物リストを自分で書くことはできるか？", answer: "I" },
-    { text: "夜間に不眠の有無", answer: "Ph" },
-    { text: "食事の際にこだわりの食器や場所はあるか？", answer: "P" },
-    { text: "居室の換気状況", answer: "E" }
-  ];
-  function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}}
-  let current=0,score=0,wrongAnswers=[], startTime=0,elapsedTimer=null;
-  let paused=false,pauseStart=0,totalPaused=0, penaltyTime=0;
+      const begin = ()=>{
+        const startTs = performance.now();
 
-  function beginGame(){
-    shuffle(questions); current=0; score=0; wrongAnswers=[];
-    paused=false; pauseStart=0; totalPaused=0; penaltyTime=0;
+        if (soundEnabled) {
+          try { cd.currentTime = 0; cd.play().catch(()=>{}); } catch(e){}
 
-    document.getElementById('totalQuestions').innerText=questions.length;
-    document.getElementById('score').innerText=score;
-    updateAccuracy(0);
-
-    document.getElementById('question').style.display='block';
-    document.getElementById('answerButtons').style.display='flex';
-    document.getElementById('result').textContent='';
-    document.getElementById('backToTopBtn').style.display='inline-block';
-
-    startTime=Date.now();
-    elapsedTimer=setInterval(updateElapsed,50);
-    showQuestion();
-  }
-  function updateElapsed(){
-    const sec=(Date.now()-startTime-totalPaused+penaltyTime)/1000;
-    const int=Math.floor(sec); const dec=(sec-int).toFixed(2).substring(1);
-    document.getElementById('elapsed').innerHTML=`${int}<span class="decimal">${dec}</span>`;
-  }
-  function showQuestion(){
-    const q=questions[current];
-    document.getElementById('question').innerText=q.text;
-    document.getElementById('questionNumber').innerText=current+1;
-    document.getElementById('result').innerText='';
-  }
-  function playOnce(id){ if(!soundEnabled) return; const el=document.getElementById(id); try{el.currentTime=0; el.play();}catch{} }
-  function checkAnswer(choice){
-    if(paused) return;
-    const correct=questions[current].answer;
-    if(choice===correct){
-      score++; document.getElementById('result').innerText='⭕ 正解！'; playOnce('correctSound');
-    }else{
-      document.getElementById('result').innerText=`❌ 不正解。正解は「${labelMap[correct]}」です。`;
-      playOnce('wrongSound');
-      wrongAnswers.push({question:questions[current].text,selected:labelMap[choice]||'（無回答）',correct:labelMap[correct]});
-      penaltyTime += 5000; updateElapsed();
-    }
-    document.getElementById('score').innerText=score;
-    updateAccuracy(current+1);
-
-    current++;
-    if(current<questions.length){ setTimeout(showQuestion,2000); }
-    else{ clearInterval(elapsedTimer); showFinalReport(); }
-  }
-  function updateAccuracy(ans){
-    const totalAnswered=Math.max(ans??0,current);
-    const rate= totalAnswered>0? ((score/totalAnswered)*100).toFixed(1):'0.0';
-    document.getElementById('accuracy').textContent=`${rate}%`;
-  }
-  document.getElementById('pauseButton').onclick=()=>{
-    if(!paused){
-      paused=true; pauseStart=Date.now(); clearInterval(elapsedTimer);
-      document.getElementById('pauseButton').textContent='▶ 再開';
-      document.getElementById('result').textContent='⏸ 一時停止中';
-    }else{
-      paused=false; totalPaused += Date.now()-pauseStart;
-      elapsedTimer=setInterval(updateElapsed,50);
-      document.getElementById('pauseButton').textContent='⏸ 一時停止';
-      document.getElementById('result').textContent='';
-    }
-  };
-  document.getElementById('quitButton').onclick=()=>{ if(confirm('ゲームを終了しますか？')){clearInterval(elapsedTimer); showFinalReport();}};
-  document.getElementById('backToTopBtn').onclick=()=>{location.reload();}; // シンプルに初期化
-
-  /* =========================
-     結果 & ランキング投稿
-  ==========================*/
-  function buildSubmitFormHTML(correct,elapsedSec){
-    return `
-    <div class="card">
-      <h3>ランキング投稿（50問すべて回答した方）</h3>
-      <div class="content">
-        <p class="small">お名前（任意）と一言コメント（<strong>20文字以内</strong>）を入力して「送信」してください。送信後は編集できません。</p>
-        <div class="flex">
-          <input id="rankName" placeholder="お名前（任意）" style="padding:8px;border:1px solid #ccc;border-radius:8px;">
-          <input id="rankComment" maxlength="20" placeholder="一言コメント（20文字以内）" style="flex:1;min-width:240px;padding:8px;border:1px solid #ccc;border-radius:8px;">
-          <button id="rankSubmitBtn" class="btn btn-primary">送信</button>
-          <button id="seeRankBtn" class="btn btn-outline" style="display:none">ランキングを見る</button>
-        </div>
-        <div id="rankMessage" class="small" style="margin-top:8px;color:#444"></div>
-      </div>
-    </div>`;
-  }
-  async function submitScoreToFirestore({name,comment,correct,elapsedSec}){
-    const now=new Date();
-    const payload={
-      name: name||'名無し',
-      comment: (comment||'').slice(0,20),
-      correct: Number(correct)||0,
-      time: Number(elapsedSec)||0,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-      createdAtLocal: now.toISOString()
-    };
-    const docRef = await db.collection('scores').add(payload);
-    return docRef.id;
-  }
-  async function fetchLeaderboardAndRank({myId}){
-    const snap=await db.collection('scores')
-      .orderBy('time','asc')
-      .orderBy('correct','desc')
-      .orderBy('createdAt','asc')
-      .limit(1000).get();
-    const list=[]; snap.forEach(d=>list.push({id:d.id,...d.data()}));
-    let myRank=null; list.forEach((r,i)=>{ if(r.id===myId) myRank=i+1; });
-    return {myRank, top:list.slice(0,10), total:list.length};
-  }
-
-  function showFinalReport(){
-    // UI 切替
-    document.getElementById('gameInfo').style.display='none';
-    document.getElementById('question').style.display='none';
-    document.getElementById('answerButtons').style.display='none';
-    // 「スタート画面へ」は常に表示
-    document.getElementById('backToTopBtn').style.display='inline-block';
-
-    const totalTimeSec = Number(((Date.now()-startTime-totalPaused+penaltyTime)/1000).toFixed(2));
-    const percent = ((score/questions.length)*100).toFixed(1);
-
-    let html = `<div class="card"><h3>結果発表</h3><div class="content">
-      <p>正解数: <strong>${score}</strong> / ${questions.length}</p>
-      <p>正解率: <strong>${percent}%</strong></p>
-      <p>かかった時間: <strong>${totalTimeSec.toFixed(2)}秒</strong></p>
-      ${wrongAnswers.length?'<h4>間違った問題一覧</h4>':''}
-      ${wrongAnswers.map(item=>`
-        <div class="report-item">
-          <div><strong>問題:</strong> ${item.question}</div>
-          <div class="wrong"><strong>あなたの答え:</strong> ${item.selected}</div>
-          <div class="correct"><strong>正解:</strong> ${item.correct}</div>
-        </div>`).join('')}
-      <div class="flex center" style="margin-top:10px">
-        <button class="btn btn-primary" onclick="startCountdown()">もう一度プレイ</button>
-      </div>
-    </div></div>`;
-
-    // 完走者は投稿可（満点限定ではない）
-    const answeredAll = (current >= questions.length);
-    if(answeredAll){
-      html += buildSubmitFormHTML(score,totalTimeSec);
-    }
-    const report=document.getElementById('finalReport');
-    report.innerHTML=html; report.style.display='block';
-
-    if(answeredAll){
-      const btn=document.getElementById('rankSubmitBtn');
-      const seeBtn=document.getElementById('seeRankBtn');
-      btn.onclick = async ()=>{
-        btn.disabled=true;
-        const name=document.getElementById('rankName')?.value||'';
-        const comment=document.getElementById('rankComment')?.value||'';
-        const msg=document.getElementById('rankMessage');
-        try{
-          const myId = await submitScoreToFirestore({name,comment,correct:score,elapsedSec:totalTimeSec});
-          msg.textContent='送信しました。あなたの順位を計算中…';
-          // 送信後は編集不可に
-          document.getElementById('rankName').disabled=true;
-          document.getElementById('rankComment').disabled=true;
-          btn.style.display='none';
-          seeBtn.style.display='inline-block';
-
-          seeBtn.onclick = async ()=>{
-            seeBtn.disabled=true;
-            const {myRank,top,total}=await fetchLeaderboardAndRank({myId});
-            renderInlineTop10(top,myRank,total);
-            seeBtn.disabled=false;
+          const tick = ()=>{
+            const elapsed = (performance.now() - startTs)/1000;
+            const t = cd.currentTime || elapsed;
+            while (idx < COUNTDOWN_MARKERS.length && t + EPS >= COUNTDOWN_MARKERS[idx].time) {
+              showLabel(COUNTDOWN_MARKERS[idx].label);
+              idx++;
+            }
+            if (elapsed < endTime) requestAnimationFrame(tick);
+            else { overlay.style.display = "none"; beginGame(); }
           };
-        }catch(e){ console.error(e); msg.textContent='送信に失敗しました。時間をおいてお試しください。'; btn.disabled=false; }
+          tick();
+        } else {
+          const tick = ()=>{
+            const t = (performance.now() - startTs)/1000;
+            while (idx < COUNTDOWN_MARKERS.length && t + EPS >= COUNTDOWN_MARKERS[idx].time) {
+              showLabel(COUNTDOWN_MARKERS[idx].label);
+              idx++;
+            }
+            if (t < endTime) requestAnimationFrame(tick);
+            else { overlay.style.display = "none"; beginGame(); }
+          };
+          tick();
+        }
+      };
+
+      if (cd.readyState < 1) {
+        cd.addEventListener('loadedmetadata', begin, {once:true});
+        setTimeout(()=>{ if (cd.readyState < 1) begin(); }, 400);
+      } else {
+        begin();
+      }
+    }
+
+    function beginGame(){
+      shuffle(questions);
+      current=0; score=0; wrongAnswers=[];
+      paused=false; pauseStartTime=0; totalPausedTime=0; penaltyTime=0;
+
+      document.getElementById("totalQuestions").innerText = questions.length;
+      document.getElementById("score").innerText = score;
+      updateAccuracy(0);
+
+      document.getElementById("startButton").style.display = "none";
+      document.getElementById("question").style.display = "block";
+      document.getElementById("answerButtons").style.display = "flex";
+      document.getElementById("controlButtons").style.display = "flex";
+      document.getElementById("result").textContent = "";
+
+      startTime = Date.now();
+      elapsedTimer = setInterval(updateElapsedTime, 50);
+
+      showQuestion();
+    }
+
+    function goStart(){
+      // スタート画面に戻る
+      clearInterval(elapsedTimer);
+      document.getElementById("gameInfo").style.display = "none";
+      document.getElementById("question").style.display = "none";
+      document.getElementById("answerButtons").style.display = "none";
+      document.getElementById("controlButtons").style.display = "none";
+      document.getElementById("finalReport").style.display = "none";
+      document.getElementById("startButton").style.display = "inline-block";
+      document.getElementById("startButton").disabled = false;
+      document.getElementById("startTop10").style.display = "block";
+      refreshStartTop10();
+      window.scrollTo({top:0, behavior:"smooth"});
+    }
+
+    function updateElapsedTime(){
+      const sec = (Date.now() - startTime - totalPausedTime + penaltyTime) / 1000;
+      const intPart = Math.floor(sec);
+      const decimalPart = (sec - intPart).toFixed(2).substring(1);
+      document.getElementById("elapsed").innerHTML =
+        `${intPart}<span class="decimal">${decimalPart}</span>`;
+    }
+
+    function showQuestion(){
+      document.getElementById("question").innerText = questions[current].text;
+      document.getElementById("questionNumber").innerText = current + 1;
+      document.getElementById("result").innerText = "";
+    }
+
+    function playOnce(id){
+      if(!soundEnabled) return;
+      const el = document.getElementById(id);
+      try{ el.currentTime = 0; el.play(); }catch(e){}
+    }
+
+    function checkAnswer(choice){
+      if(paused) return;
+      const correct = questions[current].answer;
+
+      if(choice === correct){
+        score++;
+        document.getElementById("result").innerText = "⭕ 正解！";
+        playOnce("correctSound");
+      }else{
+        document.getElementById("result").innerText =
+          `❌ 不正解。正解は「${labelMap[correct]}」です。`;
+        playOnce("wrongSound");
+        wrongAnswers.push({
+          question: questions[current].text,
+          selected: labelMap[choice] || "（無回答）",
+          correct:  labelMap[correct]
+        });
+        penaltyTime += 10000; // ← 10秒ペナルティ
+        updateElapsedTime();
+      }
+
+      document.getElementById("score").innerText = score;
+      updateAccuracy(current + 1);
+
+      current++;
+      if(current < questions.length){
+        setTimeout(showQuestion, 1200);
+      }else{
+        clearInterval(elapsedTimer);
+        showFinalReport();
+      }
+    }
+
+    function updateAccuracy(answered){
+      const totalAnswered = Math.max(answered ?? 0, current);
+      const rate = totalAnswered > 0 ? ((score/totalAnswered)*100).toFixed(1) : "0.0";
+      document.getElementById("accuracy").textContent = `${rate}%`;
+    }
+
+    function togglePause(){
+      if(!paused){
+        paused = true;
+        pauseStartTime = Date.now();
+        clearInterval(elapsedTimer);
+        document.getElementById("pauseButton").textContent = "▶ 再開";
+        document.getElementById("result").textContent = "⏸ 一時停止中";
+      }else{
+        paused = false;
+        totalPausedTime += Date.now() - pauseStartTime;
+        elapsedTimer = setInterval(updateElapsedTime, 50);
+        document.getElementById("pauseButton").textContent = "⏸ 一時停止";
+        document.getElementById("result").textContent = "";
+      }
+    }
+
+    function quitGame(){
+      if(confirm("ゲームを終了しますか？")){
+        clearInterval(elapsedTimer);
+        showFinalReport();
+      }
+    }
+
+    // 送信＆ランキング取得（TOP10入りのみ投稿可）
+    async function submitScoreToFirestore({name, comment, correct, elapsedSec}) {
+      const now = new Date();
+      const payload = {
+        name: name || "名無し",
+        comment: (comment || "").slice(0, 20), // 20文字制限
+        correct: Number(correct) || 0,
+        total: 50,
+        time: Number(elapsedSec) || 0,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        createdAtLocal: now.toISOString(),
+        commentTimestamp: formatLocalNoSec(now.toISOString()) // 送信時（秒なし）
+      };
+      const docRef = await db.collection('scores').add(payload);
+      return docRef.id;
+    }
+
+    // 全完走者から自分の順位（タイム昇順→正解降順→日時昇順）を求める
+    async function computeOverallRank(elapsedSec, correct){
+      // ざっくり最大1000件で順位算出（必要なら上限は後で増やせます）
+      const snap = await db.collection('scores')
+        .where('total','==',50)
+        .orderBy('time','asc')
+        .orderBy('correct','desc')
+        .orderBy('createdAt','asc')
+        .limit(1000)
+        .get();
+      const list = [];
+      snap.forEach(d=>list.push({id:d.id, ...d.data()}));
+      // 自分の順位 = 自分と同等以下の位置を二分探索でもいいが、ここは線形でOK
+      const myIndex = list.findIndex(r =>
+        Number(r.time).toFixed(2) == Number(elapsedSec).toFixed(2) &&
+        Number(r.correct) == Number(correct)
+      );
+      return { rank: myIndex>=0 ? myIndex+1 : null, total: list.length, top10: list.slice(0,10) };
+    }
+
+    function buildTop10HTML(top){
+      return buildTop10Table(top, {showCrown:true});
+    }
+
+    function buildSubmitFormHTML(correct, elapsedSec, enabled){
+      const disabledAttr = enabled ? "" : "disabled";
+      const msg = enabled
+        ? `<small class="muted">コメントは<strong>20文字以内</strong>、送信後は編集できません。</small>`
+        : `<small class="muted">今回はTOP10に入っていないため、投稿はできません。</small>`;
+      return `
+        <div class="rank-form">
+          <h4>ランキング投稿（TOP10入りした場合のみ可能）</h4>
+          ${msg}
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:6px;">
+            <input id="rankName" placeholder="お名前（任意）" ${disabledAttr}/>
+            <input id="rankComment" placeholder="一言コメント（20文字以内）" maxlength="20" ${disabledAttr} style="flex:1;min-width:260px;"/>
+            <button id="rankSubmitBtn" ${disabledAttr}
+              style="padding:10px 14px;border:none;border-radius:8px;background:#28a745;color:#fff;cursor:pointer;">
+              送信
+            </button>
+          </div>
+          <div id="rankMessage" style="margin-top:10px;"></div>
+          <div id="leaderboard" style="margin-top:16px;"></div>
+        </div>`;
+    }
+
+    function wireUpRankSubmit(correct, elapsedSec){
+      const btn = document.getElementById('rankSubmitBtn'); if(!btn) return;
+      btn.onclick = async ()=>{
+        btn.disabled = true;
+        const name = document.getElementById('rankName')?.value || "";
+        const comment = document.getElementById('rankComment')?.value || "";
+        const msgEl = document.getElementById('rankMessage');
+        try{
+          const myId = await submitScoreToFirestore({ name, comment, correct, elapsedSec });
+          msgEl.textContent = "送信しました。ランキングを集計中…";
+          // 送信後に「ランキングを見る」ボタンを出す
+          const viewBtn = document.createElement('button');
+          viewBtn.textContent = "ランキングをみる";
+          viewBtn.id = "afterViewRankingBtn";
+          viewBtn.style = "margin-left:10px;padding:8px 12px;border:none;border-radius:8px;background:#17a2b8;color:#fff;cursor:pointer;";
+          viewBtn.onclick = async ()=>{
+            const { top10 } = await fetchAndBuildTop10(); // 再取得
+            const board = document.getElementById('leaderboard');
+            board.innerHTML = buildTop10HTML(top10);
+          };
+          msgEl.appendChild(document.createTextNode(" "));
+          msgEl.appendChild(viewBtn);
+        }catch(e){
+          console.error(e);
+          msgEl.textContent = "送信に失敗しました。時間をおいて再度お試しください。";
+        }finally{
+          btn.disabled = false;
+          // 入力の編集不可に
+          document.getElementById('rankName').disabled = true;
+          document.getElementById('rankComment').disabled = true;
+        }
       };
     }
-  }
 
-  function renderInlineTop10(rows,myRank,total){
-    const host=document.createElement('div');
-    host.className='card';
-    host.innerHTML=`<h3>🏆 ランキング（上位10件）</h3>
-      <div class="content" id="inlineTop"></div>`;
-    document.getElementById('finalReport').appendChild(host);
-    const box=document.getElementById('inlineTop');
-    const tr=(r,i)=>{
-      const rank=i+1;
-      const crown = rank===1?`<span class="crown big gold">👑</span>`:
-                     rank===2?`<span class="crown big silver">👑</span>`:
-                     rank===3?`<span class="crown big bronze">👑</span>`:`${rank}`;
-      return `<tr>
-        <td style="text-align:right;width:70px">${crown}</td>
-        <td>${escapeHtml(r.name||'名無し')}</td>
-        <td style="text-align:right;width:110px">${Number(r.time).toFixed(2)}s</td>
-        <td style="text-align:right;width:90px">${Number(r.correct)||0}</td>
-        <td style="width:170px">${formatLocal(r.createdAtLocal)}</td>
-        <td class="muted">${escapeHtml(r.comment||'')}</td>
-      </tr>`;
-    };
-    box.innerHTML = `
-      <table class="rank">
-        <thead>
-          <tr style="background:#f9f9f9">
-            <th style="text-align:right">順位</th><th>名前</th>
-            <th style="text-align:right">タイム</th>
-            <th style="text-align:right">正解</th>
-            <th>日時</th><th>コメント</th>
-          </tr>
-        </thead>
-        <tbody>${rows.map(tr).join('')}</tbody>
-      </table>
-      <p style="margin-top:8px">あなたの順位：<strong>${myRank??'—'}</strong> / 全${total}件</p>`;
-  }
+    async function fetchAndBuildTop10(){
+      const top10 = await fetchTop10ByTime();
+      return { top10, html: buildTop10HTML(top10) };
+    }
+
+    function showFinalReport(){
+      document.getElementById("gameInfo").style.display = "none";
+      document.getElementById("question").style.display = "none";
+      document.getElementById("answerButtons").style.display = "none";
+      document.getElementById("controlButtons").style.display = "none";
+
+      const totalTimeSec = Number(((Date.now() - startTime - totalPausedTime + penaltyTime)/1000).toFixed(2));
+      const percent = ((score / questions.length) * 100).toFixed(1);
+
+      const container = document.getElementById("finalReport");
+      container.style.display = "block";
+
+      (async ()=>{
+        // 自分の総合順位を取得（TOP10に入らなくても表示）
+        const { rank, total, top10 } = await computeOverallRank(totalTimeSec, score);
+        const inTop10 = !!(top10.find((r,i)=> Number(r.time).toFixed(2)==totalTimeSec.toFixed(2) && Number(r.correct)==score ));
+
+        let html = `<h3>結果発表</h3>
+          <p>正解数: <strong>${score}</strong> / ${questions.length}</p>
+          <p>正解率: <strong>${percent}%</strong></p>
+          <p>かかった時間: <strong>${totalTimeSec.toFixed(2)}秒</strong></p>`;
+
+        if(wrongAnswers.length){
+          html += `<h4>間違った問題一覧</h4>`;
+          wrongAnswers.forEach(item=>{
+            html += `<div class="report-item">
+              <div><strong>問題:</strong> ${item.question}</div>
+              <div class="wrong"><strong>あなたの答え:</strong> ${item.selected}</div>
+              <div class="correct"><strong>正解:</strong> ${item.correct}</div>
+            </div>`;
+          });
+        }else{
+          html += `<p class="correct">全問正解！おめでとうございます！</p>`;
+        }
+
+        // 総合順位
+        if(rank && total){
+          html += `<p>あなたの総合順位（全期間・50問完走者中）: <strong>${rank}</strong> 位 / 全 <strong>${total}</strong> 件</p>`;
+        } else {
+          html += `<p>あなたの総合順位は集計外です（データ件数の範囲外）。</p>`;
+        }
+
+        // TOP10 表（参照用）
+        html += `<h4>現時点のランキング TOP10</h4>`;
+        html += buildTop10HTML(top10);
+
+        // 投稿フォーム（TOP10入りのみ可能）
+        html += buildSubmitFormHTML(score, totalTimeSec, inTop10);
+
+        // もう一度プレイ / スタートに戻る
+        html += `
+          <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;">
+            <button onclick="startCountdown()" style="background:#ff69b4;color:#fff;font-size:16px;padding:10px 24px;border-radius:10px;border:none;cursor:pointer;">もう一度プレイ</button>
+            <button onclick="goStart()" style="background:#6c757d;color:#fff;font-size:16px;padding:10px 24px;border-radius:10px;border:none;cursor:pointer;">スタート画面に戻る</button>
+          </div>`;
+
+        container.innerHTML = html;
+
+        // フォーム送信の配線（TOP10時のみ有効）
+        if(inTop10) wireUpRankSubmit(score, totalTimeSec);
+      })();
+    }
   </script>
 </body>
 </html>
