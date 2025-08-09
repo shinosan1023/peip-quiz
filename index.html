@@ -5,14 +5,24 @@
 <title>P.E.I.P. 分類クイズ</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <style>
+  :root{
+    --pink:#ff69b4;
+    --blue:#3498db;
+    --green:#2ecc71;
+    --red:#e74c3c;
+    --yellow:#f1c40f;
+  }
   body { font-family: sans-serif; background:#f4f4f4; margin:0; }
-  h1 { margin:0; padding:16px; text-align:center; background:#fff; color:#444; }
+  header { display:flex; align-items:center; justify-content:center; gap:10px; background:#fff; color:#444; padding:14px 10px; position:sticky; top:0; z-index:10; }
+  header h1 { margin:0; font-size:20px; }
+  #homeBtn { margin-left:auto; display:none; background:#6c757d; color:#fff; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; font-size:14px; }
+  #credit { font-size:12px; color:#666; text-align:center; padding:8px 0; }
 
   /* スタート画面 */
   #startArea { padding:16px; }
-  #top10Box { max-width:900px; margin: 10px auto; background:#fff; border-radius:10px; padding:14px; }
+  #top10Box { max-width:980px; margin: 10px auto; background:#fff; border-radius:10px; padding:14px; }
   #startButtons { text-align:center; margin:18px 0; }
-  #startButton { background:#ff69b4; color:#fff; border:none; padding:14px 36px; font-size:18px; border-radius:12px; cursor:pointer; }
+  #startButton { background:var(--pink); color:#fff; border:none; padding:14px 36px; font-size:18px; border-radius:12px; cursor:pointer; }
 
   /* ゲーム情報バー */
   .info { display:flex; justify-content:center; align-items:center; gap:16px; flex-wrap:wrap; margin:10px; }
@@ -32,10 +42,10 @@
   .line1{ font-size:1.1em; font-weight:800; }
   .line2,.line3{ font-size:.85em; font-weight:700; opacity:.95; }
 
-  .P{ background:#e74c3c; }          /* きもち・赤 */
-  .E{ background:#3498db; }          /* まわり・青 */
-  .I{ background:#f1c40f; color:#333; } /* できること・黄（濃文字） */
-  .Ph{ background:#2ecc71; }         /* からだ・緑 */
+  .P{ background:var(--red); }               /* きもち・赤 */
+  .E{ background:var(--blue); }              /* まわり・青 */
+  .I{ background:var(--yellow); color:#333;} /* できること・黄（濃文字） */
+  .Ph{ background:var(--green); }            /* からだ・緑 */
 
   .result { text-align:center; font-size:18px; min-height:1.6em; margin:8px 0; }
 
@@ -44,13 +54,10 @@
   th, td { padding:8px; border-bottom:1px solid #e9e9e9; }
   th { background:#fafafa; text-align:left; }
   .num { text-align:right; }
-  .crown { font-size:28px; }
-  .gold { color: yellow; }  /* 1位：黄色 */
-  .silver { color: gray; }  /* 2位：灰色 */
-  .bronze { color: brown; } /* 3位：茶色 */
+  .crown { width:28px; height:28px; vertical-align:middle; }
 
   /* 結果 */
-  #finalReport { max-width:900px; margin:16px auto; background:#fff; border-radius:10px; padding:14px; display:none; }
+  #finalReport { max-width:980px; margin:16px auto; background:#fff; border-radius:10px; padding:14px; display:none; }
   #finalReport h3{ margin-top:0; }
   .report-item { margin:8px 0; }
   .wrong { color:#d9534f; }
@@ -65,7 +72,10 @@
 </style>
 </head>
 <body>
-  <h1>P.E.I.P. 分類クイズ</h1>
+  <header>
+    <h1>P.E.I.P. 分類クイズ</h1>
+    <button id="homeBtn" onclick="goHome()">スタート画面に戻る</button>
+  </header>
 
   <!-- スタート画面（TOP10を表示） -->
   <div id="startArea">
@@ -76,6 +86,9 @@
     <div id="top10Box">読み込み中...</div>
     <div id="startButtons">
       <button id="startButton">スタート</button>
+    </div>
+    <div id="credit">
+      ※P.E.I.P.は聖隷クリストファー大学の篠﨑良勝氏が介護過程教育の質向上のために作成した教材で、著作権は篠﨑良勝氏にあります。P.E.I.P.フレームワークで分類する場合は、必ずP.E.I.P.を学習した上で行うようにしてください。
     </div>
   </div>
 
@@ -134,7 +147,7 @@
 
   <script>
   /**********************
-   * Firebase 設定
+   * Firebase 設定（あなたの実プロジェクトでOK）
    **********************/
   const firebaseConfig = {
     apiKey: "AIzaSyARGroRdf4DmJN5nOHdiVy-a9UCA1ruDPw",
@@ -153,10 +166,16 @@
    **********************/
   const labelMap = { P:"きもち", E:"まわり", I:"できること", Ph:"からだ＆病気" };
 
+  // カラフルな「王冠」SVG（1=黄色,2=灰色,3=茶色）
+  function crownSVG(fill){
+    return `<svg class="crown" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path fill="${fill}" d="M6 50h52l-3-24-10 8-9-16-9 16-10-8z"/><rect x="10" y="50" width="44" height="6" fill="${fill}"/>
+    </svg>`;
+  }
   const crown = (rank)=>{
-    if(rank===1) return `<span class="crown gold">🥇</span>`;
-    if(rank===2) return `<span class="crown silver">🥈</span>`;
-    if(rank===3) return `<span class="crown bronze">🥉</span>`;
+    if(rank===1) return crownSVG("gold");         // 黄色
+    if(rank===2) return crownSVG("gray");         // 灰色
+    if(rank===3) return crownSVG("saddlebrown");  // 茶色
     return rank;
   };
   const fmtTime = (sec)=> (Number(sec)||0).toFixed(2) + "s";
@@ -172,6 +191,7 @@
   /**********************
    * ランキング（完走者・タイム昇順）
    * 並び順：time asc → correct desc → createdAt asc
+   * ※ 初回は Firestore が「複合インデックスが必要」と出すことがあります。
    **********************/
   async function fetchTop10ByTime(){
     const snap = await db.collection('scores')
@@ -282,12 +302,11 @@
   function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } }
 
   function startGame(){
-    // スタート画面を非表示
+    // スタート画面 → 非表示
     document.getElementById('startArea').style.display = "none";
-    document.getElementById('finalReport').style.display = "none";
-
-    // ゲーム画面を表示
+    // ゲーム画面・ホームボタン → 表示
     document.getElementById('gameArea').style.display = "block";
+    document.getElementById('homeBtn').style.display = "inline-block";
 
     // 初期化
     shuffle(questions);
@@ -343,6 +362,7 @@
 
   /**********************
    * ゲーム終了 → Firestore記録 → 順位計算
+   * 50問完走者は全員対象。TOP10に入った人だけ名前/コメント送信可能（20文字まで）
    **********************/
   async function endGame(){
     clearInterval(elapsedTimer);
@@ -358,7 +378,7 @@
       createdAtLocal: new Date().toISOString()
     });
 
-    // 全体の順位（50問完走者が対象：このアプリは常に完走後に記録）
+    // 全体の順位（完走者中）：time asc → correct desc → createdAt asc
     const snap = await db.collection('scores')
       .orderBy('time','asc').orderBy('correct','desc').orderBy('createdAt','asc')
       .get();
@@ -416,6 +436,7 @@
     report.innerHTML = html;
     report.style.display = "block";
     document.getElementById('gameArea').style.display = "none";
+    // ヘッダーの戻るボタンは終わった後も表示のまま
 
     if(myRank <= 10){
       // 送信ボタンとランキングを見るボタンの挙動
@@ -429,17 +450,15 @@
         try{
           await db.collection('scores').doc(docRef.id).update({ name, comment });
           msg.textContent = "送信しました。";
-          // 入力欄ロック
+          // 入力欄ロック（編集不可）
           document.getElementById('nameInput').disabled = true;
           document.getElementById('commentInput').disabled = true;
           btn.style.display = "none";
           // ランキングを見るボタンを表示
           viewBtn.style.display = "inline-block";
           viewBtn.onclick = async ()=>{
-            // スタート画面に戻し、TOP10を再描画
-            goHome();
-            await renderTop10();
-            // スクロール
+            goHome();          // スタート画面へ
+            await renderTop10(); // 再描画
             window.scrollTo({ top:0, behavior:'smooth' });
           };
         }catch(e){
@@ -452,9 +471,13 @@
   }
 
   function goHome(){
+    // ゲームエリア・結果を閉じて、スタート画面へ
     document.getElementById('finalReport').style.display = "none";
+    document.getElementById('gameArea').style.display = "none";
     document.getElementById('startArea').style.display = "block";
-    // TOP10は初期表示で自動読み込みされるが、念のため再描画してもOK
+    document.getElementById('homeBtn').style.display = "none"; // スタート画面では非表示
+    // スタート画面のTOP10は自動読み込み済み。必要なら再取得:
+    // renderTop10();
   }
 
   /**********************
