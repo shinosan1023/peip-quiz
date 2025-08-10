@@ -327,19 +327,16 @@
   }
 
   /**********************
-   * ランキング用：完走者取得（クライアント側で最終ソート）
-   * 依存インデックスを最小化するため、orderBy('time') だけで取得してから
-   * time asc → correct desc → createdAtLocal asc で並べ替える
+   * ランキング用：完走者取得（インデックス不要版）
+   * 等価フィルタのみ。取得後にクライアントで
+   * time asc → correct desc → createdAtLocal asc で安定ソート。
    **********************/
-  async function fetchFinishers(limitN){
-    const q = db.collection('scores')
+  async function fetchFinishers(){
+    const snap = await db.collection('scores')
       .where('completed','==', true)
       .where('totalQuestions','==', TOTAL_QUESTIONS)
-      .orderBy('time','asc');
-
-    const snap = limitN ? await q.limit(limitN).get() : await q.get();
+      .get();
     const list=[]; snap.forEach(d=>list.push({ id:d.id, ...d.data() }));
-    // クライアントで安定ソート
     list.sort((a,b)=>{
       if((a.time||0)!==(b.time||0)) return (a.time||0)-(b.time||0);
       if((a.correct||0)!==(b.correct||0)) return (b.correct||0)-(a.correct||0);
@@ -352,7 +349,7 @@
     const box=document.getElementById('top10Box');
     box.textContent="読み込み中...";
     try{
-      const rows = await fetchFinishers(1000); // 十分な件数を取得してから上位10を表示
+      const rows = await fetchFinishers();
       if(!rows.length){ box.textContent="まだ記録がありません"; return; }
       let html = `<table><thead><tr>
         <th>順位</th><th>名前</th><th class="num">正解</th><th class="num">タイム</th><th>日時</th><th>コメント</th>
@@ -370,13 +367,13 @@
       html += `</tbody></table>`;
       box.innerHTML = html;
     }catch(e){
-      console.error(e);
+      console.error("TOP10の取得エラー:", e);
       box.textContent="ランキング取得に失敗しました。";
     }
   }
 
   /**********************
-   * ゲーム終了 → Firestore記録 → 即座に順位計算 & 入力欄表示
+   * ゲーム終了 → Firestore記録 → 即座に順位計算 & 入力欄判定
    **********************/
   function endGame(){ clearInterval(elapsedTimer); showFinalReport(true); }
 
@@ -408,11 +405,14 @@
     // 完走者ランキング（即時計算）
     let myRank = null, finishers = 0;
     try{
-      const rows = await fetchFinishers();        // すべて取得（最大1000まで）
+      const rows = await fetchFinishers();
       finishers = rows.length;
       myRank = rows.findIndex(r=>r.id===myDocId);
-      if(myRank>=0) myRank = myRank + 1;          // 1始まり
+      if(myRank>=0) myRank = myRank + 1; // 1始まり
     }catch(e){ console.error(e); }
+
+    // 編集可否：TOP10に入った完走者のみ
+    const canEditProfile = finished && myRank && myRank <= 10;
 
     // 表示組み立て
     let html = `
@@ -427,7 +427,6 @@
     if(!finished){
       html += `<p class="wrong">次回は、完走（${TOTAL_QUESTIONS}問チャレンジ）をお待ちしています！</p>`;
     }else{
-      // 完走者 ◯人中 ◯位（◯位は赤・太字・大きめ）
       if(myRank && finishers){
         html += `<p class="rankLine">完走者 <strong>${finishers}</strong> 人中 <span class="rankEm">${myRank}</span> 位</p>`;
       }else{
@@ -435,8 +434,8 @@
       }
     }
 
-    // ★ コメント入力（完走者は常に入力可、TOP10未満でもOK）— 間違い一覧より上
-    if(finished && myDocId){
+    /* コメント入力（TOP10のみ）。位置は“間違い一覧”より上 */
+    if(canEditProfile && myDocId){
       html += `
         <hr>
         <h4>ランキング用の名前・コメント</h4>
@@ -448,6 +447,8 @@
         </div>
         <div id="submitMsg" style="margin:4px 0 10px;"></div>
       `;
+    }else if(finished){
+      html += `<p style="margin:14px 0 0; color:#666;">※ 今回はTOP10外のため、名前・コメントの登録はできません。</p>`;
     }
 
     // 間違い一覧
@@ -476,8 +477,8 @@
     report.innerHTML = html;
     report.style.display = "block";
 
-    // 入力イベント
-    if(finished && myDocId){
+    // 入力イベント（送信後に即ランキング再描画）
+    if(canEditProfile && myDocId){
       const btn = document.getElementById('submitBtn');
       const msg = document.getElementById('submitMsg');
       btn.onclick = async ()=>{
@@ -487,12 +488,10 @@
         try{
           await db.collection('scores').doc(myDocId).update({ name, comment });
           msg.textContent = "送信しました。ランキングに反映しました。";
-          // 入力のロック
           document.getElementById('nameInput').disabled = true;
           document.getElementById('commentInput').disabled = true;
           btn.style.display = "none";
-          // ★ ランキングを即時再描画
-          await renderTop10();
+          await renderTop10(); // ★ 即時反映
         }catch(e){
           console.error(e);
           msg.textContent = "送信に失敗しました。時間をおいてお試しください。";
