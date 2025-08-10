@@ -3,22 +3,20 @@
 <head>
 <meta charset="UTF-8" />
 <title>P.E.I.P. 分類クイズ</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <style>
-  body { font-family: sans-serif; background:#f4f4f4; margin:0; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans JP", sans-serif; background:#f4f4f4; margin:0; }
   h1 { margin:0; padding:16px; text-align:center; background:#fff; color:#444; }
 
-  /* トップバー */
+  /* トップバー（常時） */
   .topbar { display:flex; gap:10px; justify-content:center; align-items:center; flex-wrap:wrap; padding:10px; background:#fff; border-bottom:1px solid #eee; }
   .sound-toggle { display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; background:#fff; border:1px solid #ddd; }
-  .sound-toggle input { width:20px; height:20px; }
-  #soundLabel { font-weight:600; }
-  .homeBtn { margin-left:10px; padding:8px 12px; border:none; border-radius:8px; background:#6c757d; color:#fff; cursor:pointer; }
+  .homeBtn { padding:8px 12px; border:none; border-radius:8px; background:#6c757d; color:#fff; cursor:pointer; }
 
   /* スタート画面 */
   #startArea { padding:16px; }
   #top10Box { max-width:960px; margin: 10px auto; background:#fff; border-radius:10px; padding:14px; }
-  #startButtons { text-align:center; margin:18px 0; }
+  #startButtons { text-align:center; margin:0 0 18px; }
   #startButton { background:#ff69b4; color:#fff; border:none; padding:14px 36px; font-size:18px; border-radius:12px; cursor:pointer; }
 
   /* ゲーム情報バー */
@@ -28,22 +26,13 @@
   .elapsed-badge { background:#e3f7ff; border:2px solid #5bc0de; color:#0b6d85; }
   .acc-badge { background:#fff6e0; border:2px solid #f0ad4e; color:#856404; }
 
-  /* 問題と回答ボタン */
   .question { text-align:center; font-size:22px; margin:10px 12px; }
   .buttons { display:flex; flex-wrap:wrap; justify-content:center; gap:14px; margin:12px; }
-  .btn-circle{
-    width:132px; height:132px; border-radius:50%;
-    display:flex; align-items:center; justify-content:center;
-    border:none; cursor:pointer; color:#fff; box-shadow:0 4px 12px rgba(0,0,0,.08);
-  }
+  .btn-circle{ width:132px; height:132px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:none; cursor:pointer; color:#fff; box-shadow:0 4px 12px rgba(0,0,0,.08); }
   .btn-circle .btn-content{ display:flex; flex-direction:column; align-items:center; line-height:1.2; }
   .line1{ font-size:1.1em; font-weight:800; }
   .line2,.line3{ font-size:.85em; font-weight:700; opacity:.95; }
-
-  .P{  background:#e74c3c; }             /* きもち・赤 */
-  .E{  background:#3498db; }             /* まわり・青 */
-  .I{  background:#f1c40f; color:#333; } /* できること・黄（濃色） */
-  .Ph{ background:#2ecc71; }            /* からだ・緑 */
+  .P{ background:#e74c3c; } .E{ background:#3498db; } .I{ background:#f1c40f; color:#333; } .Ph{ background:#2ecc71; }
 
   .result { text-align:center; font-size:18px; min-height:1.6em; margin:8px 0; }
 
@@ -52,7 +41,9 @@
   th, td { padding:8px; border-bottom:1px solid #e9e9e9; }
   th { background:#fafafa; text-align:left; }
   .num { text-align:right; }
-  .crown { font-size:28px; line-height:1; } /* 絵文字のサイズ */
+  .crown { font-size:28px; line-height:1; }
+  .rankLine { margin:8px 0 0; font-size:16px; color:#555; }
+  .rankEm { font-size:32px; font-weight:900; color:#d9534f; }
 
   /* 操作ボタン（ゲーム中） */
   #controlButtons { margin-top:10px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
@@ -62,31 +53,22 @@
   .btn-danger { background:#dc3545; color:#fff; }
   .btn-secondary { background:#6c757d; color:#fff; }
   .btn-success { background:#28a745; color:#fff; }
-  .btn-link { background:transparent; color:#007bff; text-decoration:underline; cursor:pointer; border:none; }
+  .btn-link { background:transparent; color:#007bff; text-decoration:underline; border:none; cursor:pointer; }
 
   /* 結果 */
   #finalReport { max-width:960px; margin:16px auto; background:#fff; border-radius:10px; padding:14px; display:none; }
-  #finalReport h3{ margin-top:0; }
+  #finalReport h3{ margin:0 0 10px; }
   .report-item { margin:8px 0; }
   .wrong { color:#d9534f; }
   .correct { color:#2e7d32; }
 
-  /* 順位表示（赤・太字・大きめ） */
-  .rankLine { margin:8px 0 4px; font-size:16px; }
-  .rankEmph { color:#d32f2f; font-weight:900; font-size:28px; padding:0 6px; }
-
-  /* カウントダウン・オーバーレイ */
-  #countOverlay{
-    position:fixed; inset:0; display:none; align-items:center; justify-content:center;
-    background:rgba(0,0,0,.65); color:#fff; z-index:9999;
-    font-weight:900; text-shadow:0 4px 14px rgba(0,0,0,.6); user-select:none;
-    font-size:120px;
-  }
+  /* カウントダウン */
+  #countOverlay{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.65); color:#fff; z-index:9999; font-weight:900; text-shadow:0 4px 14px rgba(0,0,0,.6); user-select:none; font-size:120px; }
   #countText { display:block; }
   @keyframes popscale { 0%{transform:scale(.7)} 60%{transform:scale(1.15)} 100%{transform:scale(1)} }
   .pop { animation: popscale .35s ease-out; }
 
-  /* フッターの注意文 */
+  /* フッター */
   footer { margin:18px auto 28px; max-width:960px; font-size:12px; color:#555; padding:0 12px; }
   footer .note { background:#fff; border:1px solid #eee; border-radius:8px; padding:10px; }
 </style>
@@ -94,7 +76,7 @@
 <body>
   <h1>P.E.I.P. 分類クイズ</h1>
 
-  <!-- 常時表示のトップバー：音声トグル＆ホーム -->
+  <!-- 常時表示のトップバー -->
   <div class="topbar">
     <label class="sound-toggle" title="効果音 ON/OFF">
       <input type="checkbox" id="soundToggle" checked />
@@ -103,16 +85,16 @@
     <button class="homeBtn" onclick="goHome()">スタート画面に戻る</button>
   </div>
 
-  <!-- スタート画面（TOP10を表示） -->
+  <!-- スタート画面（まずスタートボタン、その下にTOP10表） -->
   <div id="startArea">
+    <div id="startButtons">
+      <button id="startButton" onclick="startCountdown()">スタート</button>
+    </div>
     <div style="text-align:center; margin:8px 0;">
       <h2 style="margin:6px 0;">ランキング TOP10（タイムが短い順）</h2>
       <small>※ <b>完走者</b>（同じ問題数）の中から、タイム → 正解数 → 日時 で並べています</small>
     </div>
     <div id="top10Box">読み込み中...</div>
-    <div id="startButtons">
-      <button id="startButton" class="btn-primary" onclick="startCountdown()">スタート</button>
-    </div>
   </div>
 
   <!-- ゲーム画面 -->
@@ -160,7 +142,7 @@
 
   <script>
   /**********************
-   * Firebase 設定
+   * Firebase 設定（固定）
    **********************/
   const firebaseConfig = {
     apiKey: "AIzaSyARGroRdf4DmJN5nOHdiVy-a9UCA1ruDPw",
@@ -345,27 +327,37 @@
   }
 
   /**********************
-   * ランキング（完走者のみ・同じ問題数）
+   * ランキング用：完走者取得（クライアント側で最終ソート）
+   * 依存インデックスを最小化するため、orderBy('time') だけで取得してから
+   * time asc → correct desc → createdAtLocal asc で並べ替える
    **********************/
-  async function fetchTop10ByTime(){
-    const snap = await db.collection('scores')
+  async function fetchFinishers(limitN){
+    const q = db.collection('scores')
       .where('completed','==', true)
       .where('totalQuestions','==', TOTAL_QUESTIONS)
-      .orderBy('time','asc').orderBy('correct','desc').orderBy('createdAt','asc')
-      .limit(10).get();
-    const list=[]; snap.forEach(d=>list.push({ id:d.id, ...d.data() })); return list;
+      .orderBy('time','asc');
+
+    const snap = limitN ? await q.limit(limitN).get() : await q.get();
+    const list=[]; snap.forEach(d=>list.push({ id:d.id, ...d.data() }));
+    // クライアントで安定ソート
+    list.sort((a,b)=>{
+      if((a.time||0)!==(b.time||0)) return (a.time||0)-(b.time||0);
+      if((a.correct||0)!==(b.correct||0)) return (b.correct||0)-(a.correct||0);
+      return String(a.createdAtLocal||'').localeCompare(String(b.createdAtLocal||''));
+    });
+    return list;
   }
 
   async function renderTop10(){
     const box=document.getElementById('top10Box');
     box.textContent="読み込み中...";
     try{
-      const rows=await fetchTop10ByTime();
+      const rows = await fetchFinishers(1000); // 十分な件数を取得してから上位10を表示
       if(!rows.length){ box.textContent="まだ記録がありません"; return; }
       let html = `<table><thead><tr>
         <th>順位</th><th>名前</th><th class="num">正解</th><th class="num">タイム</th><th>日時</th><th>コメント</th>
       </tr></thead><tbody>`;
-      rows.forEach((r,i)=>{
+      rows.slice(0,10).forEach((r,i)=>{
         html += `<tr>
           <td class="crown">${crown(i+1)}</td>
           <td>${esc(r.name)||"名無し"}</td>
@@ -377,11 +369,14 @@
       });
       html += `</tbody></table>`;
       box.innerHTML = html;
-    }catch(e){ console.error(e); box.textContent="ランキング取得に失敗しました。"; }
+    }catch(e){
+      console.error(e);
+      box.textContent="ランキング取得に失敗しました。";
+    }
   }
 
   /**********************
-   * ゲーム終了 → Firestore記録 → 順位計算（即時）
+   * ゲーム終了 → Firestore記録 → 即座に順位計算 & 入力欄表示
    **********************/
   function endGame(){ clearInterval(elapsedTimer); showFinalReport(true); }
 
@@ -393,9 +388,9 @@
     const answered = finished ? TOTAL_QUESTIONS : current;
     const percent  = ((score / (answered||1)) * 100).toFixed(1);
 
-    // 記録保存（完走かどうかをフラグに）
+    // 記録保存
     let myDocId = null;
-    let myRecord = null;
+    const createdAtLocal = new Date().toISOString();
     try{
       const docRef = await db.collection('scores').add({
         name:"", comment:"",
@@ -405,64 +400,59 @@
         answered: answered,
         completed: !!finished,
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        createdAtLocal: new Date().toISOString()
+        createdAtLocal
       });
       myDocId = docRef.id;
-      myRecord = { id: myDocId, correct: score, time: totalTimeSec, completed: !!finished, totalQuestions: TOTAL_QUESTIONS };
     }catch(e){ console.error(e); }
 
-    // 完走者のみで順位計算（即時）
+    // 完走者ランキング（即時計算）
     let myRank = null, finishers = 0;
     try{
-      const snap = await db.collection('scores')
-        .where('completed','==', true)
-        .where('totalQuestions','==', TOTAL_QUESTIONS)
-        .orderBy('time','asc').orderBy('correct','desc').orderBy('createdAt','asc')
-        .get();
-      snap.forEach((d,i)=>{ finishers++; if(d.id===myDocId) myRank=i+1; });
+      const rows = await fetchFinishers();        // すべて取得（最大1000まで）
+      finishers = rows.length;
+      myRank = rows.findIndex(r=>r.id===myDocId);
+      if(myRank>=0) myRank = myRank + 1;          // 1始まり
     }catch(e){ console.error(e); }
 
-    // レポート組み立て
+    // 表示組み立て
     let html = `
-      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+      <div style="display:flex; gap:8px; align-items:center; justify-content:space-between; flex-wrap:wrap;">
         <h3 style="margin:0;">結果発表</h3>
-        <button class="btn btn-link" id="viewRankTopBtn">ランキング表をみる</button>
+        <button class="btn btn-link" onclick="goHomeAndShowRank()">ランキング表をみる</button>
       </div>
       <p>正解数: <strong>${score}</strong> / ${finished?TOTAL_QUESTIONS:answered}</p>
       <p>正解率: <strong>${percent}%</strong></p>
       <p>かかった時間: <strong>${totalTimeSec.toFixed(2)}秒</strong></p>`;
 
-    // 順位表示
-    if(finished && myRank){
-      html += `<p class="rankLine">完走者 <strong>${finishers}</strong> 人中 <span class="rankEmph">${myRank} 位</span></p>`;
-    }else if(!finished){
+    if(!finished){
       html += `<p class="wrong">次回は、完走（${TOTAL_QUESTIONS}問チャレンジ）をお待ちしています！</p>`;
+    }else{
+      // 完走者 ◯人中 ◯位（◯位は赤・太字・大きめ）
+      if(myRank && finishers){
+        html += `<p class="rankLine">完走者 <strong>${finishers}</strong> 人中 <span class="rankEm">${myRank}</span> 位</p>`;
+      }else{
+        html += `<p class="rankLine">完走者の順位を集計中です…</p>`;
+      }
     }
 
-    // --- 名前/コメント入力（最上部・間違い一覧より上） ---
-    // ルール：完走者が10人未満 → 完走した人は全員入力可
-    // 　　　：完走者が10人以上 → TOP10のみ入力可
-    const canEditProfile = finished && ( (finishers < 10) || (myRank && myRank <= 10) );
-
-    if(canEditProfile){
+    // ★ コメント入力（完走者は常に入力可、TOP10未満でもOK）— 間違い一覧より上
+    if(finished && myDocId){
       html += `
         <hr>
         <h4>ランキング用の名前・コメント</h4>
         <p>※ コメントは<strong>20文字以内</strong>です</p>
-        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:8px;">
           <input id="nameInput" placeholder="名前（任意）" style="padding:8px;border:1px solid #ccc;border-radius:8px;">
           <input id="commentInput" placeholder="コメント（20文字以内）" maxlength="20" style="flex:1;min-width:200px;padding:8px;border:1px solid #ccc;border-radius:8px;">
           <button class="btn btn-success" id="submitBtn">送信</button>
         </div>
-        <div id="submitMsg" style="margin-top:8px;"></div>
+        <div id="submitMsg" style="margin:4px 0 10px;"></div>
       `;
-    }else if(finished && finishers >= 10 && myRank && myRank > 10){
-      html += `<p class="rankLine">完走者 <strong>${finishers}</strong> 人中 <span class="rankEmph">${myRank} 位</span></p>`;
     }
 
     // 間違い一覧
     if(wrongList.length){
-      html += `<hr><h4>間違った問題</h4>`;
+      html += `<h4>間違った問題</h4>`;
       wrongList.forEach(x=>{
         html += `<div class="report-item">
           <div><strong>問題:</strong> ${esc(x.q)}</div>
@@ -474,12 +464,11 @@
       html += `<p class="correct">全問正解！おめでとうございます！</p>`;
     }
 
-    // 画面遷移ボタン
     html += `
       <hr>
-      <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-        <button class="btn btn-link" id="viewRankBottomBtn">ランキング表をみる</button>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
         <button class="btn btn-secondary" onclick="goHome()">スタート画面に戻る</button>
+        <button class="btn btn-link" onclick="goHomeAndShowRank()">ランキング表をみる</button>
       </div>
     `;
 
@@ -487,28 +476,23 @@
     report.innerHTML = html;
     report.style.display = "block";
 
-    // 「ランキング表をみる」ボタン
-    const goRank = async () => { goHome(); await renderTop10(); window.scrollTo({ top:0, behavior:'smooth' }); };
-    const topBtn = document.getElementById('viewRankTopBtn'); if(topBtn) topBtn.onclick = goRank;
-    const bottomBtn = document.getElementById('viewRankBottomBtn'); if(bottomBtn) bottomBtn.onclick = goRank;
-
-    // 入力イベント（許可時のみ）
-    if(canEditProfile){
+    // 入力イベント
+    if(finished && myDocId){
       const btn = document.getElementById('submitBtn');
       const msg = document.getElementById('submitMsg');
       btn.onclick = async ()=>{
         btn.disabled = true;
-        const name = (document.getElementById('nameInput').value || "").trim();
-        const comment = ((document.getElementById('commentInput').value || "").trim()).slice(0,20);
+        const name = document.getElementById('nameInput').value || "";
+        const comment = (document.getElementById('commentInput').value || "").slice(0,20);
         try{
           await db.collection('scores').doc(myDocId).update({ name, comment });
-          msg.textContent = "送信しました。ランキングに反映します…";
-          // すぐにランキング再描画
-          await renderTop10();
-          msg.textContent = "送信しました。ランキングに反映されました。";
+          msg.textContent = "送信しました。ランキングに反映しました。";
+          // 入力のロック
           document.getElementById('nameInput').disabled = true;
           document.getElementById('commentInput').disabled = true;
           btn.style.display = "none";
+          // ★ ランキングを即時再描画
+          await renderTop10();
         }catch(e){
           console.error(e);
           msg.textContent = "送信に失敗しました。時間をおいてお試しください。";
@@ -518,15 +502,17 @@
     }
   }
 
-  /**********************
-   * スタート画面に戻る
-   **********************/
   function goHome(){
     document.getElementById('countOverlay').style.display = "none";
     document.getElementById('finalReport').style.display = "none";
     document.getElementById('gameArea').style.display = "none";
     document.getElementById('startArea').style.display = "block";
     document.getElementById('startButton').disabled = false;
+  }
+  async function goHomeAndShowRank(){
+    goHome();
+    await renderTop10();
+    window.scrollTo({ top:0, behavior:'smooth' });
   }
 
   /**********************
