@@ -66,12 +66,14 @@
 
   /* 結果 */
   #finalReport { max-width:960px; margin:16px auto; background:#fff; border-radius:10px; padding:14px; display:none; }
-  #finalReport h3{ margin:0 0 8px 0; }
+  #finalReport h3{ margin-top:0; }
   .report-item { margin:8px 0; }
   .wrong { color:#d9534f; }
   .correct { color:#2e7d32; }
-  .rankLine { margin:6px 0 16px; font-size:18px; }
-  .myRank { color:#d32f2f; font-weight:900; font-size:28px; }
+
+  /* 順位の強調 */
+  .rankLine { font-size:18px; margin:8px 0; }
+  .rankHighlight { color:red; font-weight:bold; font-size:1.6em; }
 
   /* カウントダウン・オーバーレイ */
   #countOverlay{
@@ -249,7 +251,7 @@
     const text = document.getElementById("countText");
     overlay.style.display = "flex";
     let idx = 0;
-    const endTime = COUNTDOWN_MARKERS.at(-1).time + HOLD_AFTER_START + 0.05;
+    const endTime = COUNTDOWN_MARKERS[COUNTDOWN_MARKERS.length-1].time + HOLD_AFTER_START + 0.05;
 
     const showLabel = (s)=>{ if(text.textContent!==s){ text.textContent=s; text.classList.remove('pop'); void text.offsetWidth; text.classList.add('pop'); }};
 
@@ -344,14 +346,20 @@
 
   /**********************
    * ランキング（完走者のみ・同じ問題数）
+   * 並び順： time asc → correct desc → createdAtMs asc
    **********************/
   async function fetchTop10ByTime(){
-    const snap = await db.collection('scores')
-      .where('completed','==', true)
-      .where('totalQuestions','==', TOTAL_QUESTIONS)
-      .orderBy('time','asc').orderBy('correct','desc').orderBy('createdAt','asc')
-      .limit(10).get();
-    const list=[]; snap.forEach(d=>list.push({ id:d.id, ...d.data() })); return list;
+    try{
+      const snap = await db.collection('scores')
+        .where('completed','==', true)
+        .where('totalQuestions','==', TOTAL_QUESTIONS)
+        .orderBy('time','asc').orderBy('correct','desc').orderBy('createdAtMs','asc')
+        .limit(10).get();
+      const list=[]; snap.forEach(d=>list.push({ id:d.id, ...d.data() })); return list;
+    }catch(e){
+      console.error(e);
+      throw e;
+    }
   }
 
   async function renderTop10(){
@@ -375,11 +383,31 @@
       });
       html += `</tbody></table>`;
       box.innerHTML = html;
-    }catch(e){ console.error(e); box.textContent="ランキング取得に失敗しました。"; }
+    }catch(e){
+      // インデックス未作成のときのガイド
+      const isPrecond = (e && e.code === 'failed-precondition');
+      box.innerHTML = isPrecond
+        ? 'ランキング取得に失敗しました。（複合インデックス未作成）<br>コンソールのリンクから、<b>time 昇順 → correct 降順 → createdAtMs 昇順</b>で作成してください。'
+        : 'ランキング取得に失敗しました。';
+    }
+  }
+
+  // 完走者の総数と自分の順位を取る（即時）
+  async function getMyRankAndFinishers(myId){
+    const snap = await db.collection('scores')
+      .where('completed','==', true)
+      .where('totalQuestions','==', TOTAL_QUESTIONS)
+      .orderBy('time','asc').orderBy('correct','desc').orderBy('createdAtMs','asc')
+      .limit(2000)   // 規模に応じて調整
+      .get();
+    const rows=[]; snap.forEach(d=>rows.push(d));
+    let myRank=null;
+    rows.forEach((d,i)=>{ if(d.id===myId) myRank=i+1; });
+    return { myRank, finishers: rows.length };
   }
 
   /**********************
-   * ゲーム終了 → Firestore記録 → 順位計算
+   * ゲーム終了 → Firestore記録 → 順位計算（即時）
    **********************/
   function endGame(){ clearInterval(elapsedTimer); showFinalReport(true); }
 
@@ -393,6 +421,7 @@
 
     // 記録保存（完走かどうかをフラグに）
     let myDocId = null;
+    const now = new Date();
     try{
       const docRef = await db.collection('scores').add({
         name:"", comment:"",
@@ -401,62 +430,67 @@
         totalQuestions: TOTAL_QUESTIONS,
         answered: answered,
         completed: !!finished,
+        createdAtMs: now.getTime(),              // ★ 即時順位のためにクライアント時刻で保存
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        createdAtLocal: new Date().toISOString()
+        createdAtLocal: now.toISOString()
       });
       myDocId = docRef.id;
     }catch(e){ console.error(e); }
 
-    // 完走者のみで順位計算
+    // 完走者のみで順位計算（即時）
     let myRank = null, finishers = 0;
-    try{
-      const snap = await db.collection('scores')
-        .where('completed','==', true)
-        .where('totalQuestions','==', TOTAL_QUESTIONS)
-        .orderBy('time','asc').orderBy('correct','desc').orderBy('createdAt','asc')
-        .get();
-      snap.forEach((d,i)=>{ finishers++; if(d.id===myDocId) myRank=i+1; });
-    }catch(e){ console.error(e); }
+    if (finished && myDocId){
+      try{
+        const r = await getMyRankAndFinishers(myDocId);
+        myRank = r.myRank;
+        finishers = r.finishers;
+      }catch(e){ console.error(e); }
+    }
 
+    // 結果画面の上部に「ランキング表をみる」ボタン
     let html = `
-      <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:10px;">
-        <button class="btn btn-link" onclick="viewRanking()">🏆 ランキング表をみる</button>
+      <div style="display:flex;justify-content:flex-end;">
+        <button class="btn btn-link" id="viewRankBtnTop">ランキング表をみる</button>
       </div>
       <h3>結果発表</h3>
       <p>正解数: <strong>${score}</strong> / ${finished?TOTAL_QUESTIONS:answered}</p>
       <p>正解率: <strong>${percent}%</strong></p>
       <p>かかった時間: <strong>${totalTimeSec.toFixed(2)}秒</strong></p>`;
 
-    if(finished && myRank){
-      html += `<p class="rankLine">完走者 <strong>${finishers}</strong> 人中 <span class="myRank">${myRank}位</span></p>`;
-    }else if(!finished){
+    if(!finished){
       html += `<p class="wrong">次回は、完走（${TOTAL_QUESTIONS}問チャレンジ）をお待ちしています！</p>`;
+    }else if(wrongList.length===0){
+      html += `<p class="correct">全問正解！おめでとうございます！</p>`;
+    }
+
+    // 完走時は「完走者◯人中 ◯位」を即表示（◯位は赤・太字・大きめ）
+    if (finished && myRank){
+      html += `<p class="rankLine">完走者<strong>${finishers}</strong>人中 <span class="rankHighlight">${myRank}</span>位</p>`;
     }
 
     // --- 入力可否の条件 ---
-    // 1) 完走している かつ 2) (完走者が10人未満) または (自分がTOP10)
-    const canEditProfile = finished && ( (finishers < 10) || (myRank && myRank <= 10) );
+    // 1) 完走している && 2) (完走者が10人未満) or (自分がTOP10)
+    const canEditProfile = finished && ( myRank ? ((finishers < 10) || (myRank <= 10)) : (true) );
+    // ↑ myRank がまだ null（まれ）でも、とりあえず入力は出す（表示優先）
 
     if(canEditProfile){
       html += `
         <hr>
         <h4>ランキング用の名前・コメント</h4>
         <p>※ コメントは<strong>20文字以内</strong>です</p>
-        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:10px;">
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
           <input id="nameInput" placeholder="名前（任意）" style="padding:8px;border:1px solid #ccc;border-radius:8px;">
           <input id="commentInput" placeholder="コメント（20文字以内）" maxlength="20" style="flex:1;min-width:200px;padding:8px;border:1px solid #ccc;border-radius:8px;">
           <button class="btn btn-success" id="submitBtn">送信</button>
         </div>
-        <div id="submitMsg" style="margin-top:4px; margin-bottom:14px;"></div>
+        <div id="submitMsg" style="margin-top:8px;"></div>
       `;
-    }else{
-      if(finished && finishers >= 10 && myRank && myRank > 10){
-        html += `<p class="rankLine">総順位：完走者 <strong>${finishers}</strong> 人中 <span class="myRank">${myRank}位</span></p>`;
-      }
-      html += `<hr>`;
+    }else if (finished && myRank && myRank > 10){
+      // TOP10外は順位を大きめに表示（要望通り）
+      html += `<p class="rankLine">総順位：<strong>${finishers}</strong>人中 <span class="rankHighlight">${myRank}</span>位</p>`;
     }
 
-    // 間違い一覧（入力欄の下に配置）
+    // 間違い一覧（入力フォームはその上に配置済み）
     if(wrongList.length){
       html += `<h4>間違った問題</h4>`;
       wrongList.forEach(x=>{
@@ -466,13 +500,13 @@
           <div class="correct"><strong>正解:</strong> ${esc(x.right)}</div>
         </div>`;
       });
-    }else if(finished){
-      html += `<p class="correct">全問正解！おめでとうございます！</p>`;
     }
 
     html += `
-      <div style="margin-top:10px;">
+      <hr>
+      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn btn-secondary" onclick="goHome()">スタート画面に戻る</button>
+        <button class="btn btn-link" id="viewRankBtnBottom">ランキング表をみる</button>
       </div>
     `;
 
@@ -480,46 +514,52 @@
     report.innerHTML = html;
     report.style.display = "block";
 
+    // ランキングをみる（上/下どちらも）
+    const wireView = (id)=> {
+      const b = document.getElementById(id);
+      if(!b) return;
+      b.onclick = async ()=>{ goHome(); await renderTop10(); window.scrollTo({ top:0, behavior:'smooth' }); };
+    };
+    wireView('viewRankBtnTop');
+    wireView('viewRankBtnBottom');
+
     // 入力イベント（許可時のみ）
-    if(canEditProfile){
+    if(canEditProfile && myDocId){
       const btn = document.getElementById('submitBtn');
       const msg = document.getElementById('submitMsg');
-      btn.onclick = async ()=>{
-        btn.disabled = true;
-        const name = document.getElementById('nameInput').value || "";
-        const comment = (document.getElementById('commentInput').value || "").slice(0,20);
-        try{
-          await db.collection('scores').doc(myDocId).update({ name, comment });
-          msg.textContent = "送信しました。";
-          document.getElementById('nameInput').disabled = true;
-          document.getElementById('commentInput').disabled = true;
-          btn.style.display = "none";
-          // 送信直後にランキングを即時更新
-          await renderTop10();
-        }catch(e){
-          console.error(e);
-          msg.textContent = "送信に失敗しました。時間をおいてお試しください。";
-          btn.disabled = false;
-        }
-      };
+      if(btn){
+        btn.onclick = async ()=>{
+          btn.disabled = true;
+          const name = document.getElementById('nameInput').value || "";
+          const comment = (document.getElementById('commentInput').value || "").slice(0,20);
+          try{
+            await db.collection('scores').doc(myDocId).update({ name, comment });
+            msg.textContent = "送信しました。";
+            // 入力不可にする（修正不可）
+            document.getElementById('nameInput').disabled = true;
+            document.getElementById('commentInput').disabled = true;
+            btn.style.display = "none";
+            // 即ランキング再描画
+            await renderTop10();
+          }catch(e){
+            console.error(e);
+            msg.textContent = "送信に失敗しました。時間をおいてお試しください。";
+            btn.disabled = false;
+          }
+        };
+      }
     }
   }
 
-  function viewRanking(){
-    goHome();           // 表示をスタート画面へ
-    window.scrollTo({ top:0, behavior:'smooth' });
-  }
-
   /**********************
-   * スタート画面に戻る（必ず再描画）
+   * スタート画面に戻る
    **********************/
-  async function goHome(){
+  function goHome(){
     document.getElementById('countOverlay').style.display = "none";
     document.getElementById('finalReport').style.display = "none";
     document.getElementById('gameArea').style.display = "none";
     document.getElementById('startArea').style.display = "block";
     document.getElementById('startButton').disabled = false;
-    await renderTop10();   // ← 戻るたびに最新に
   }
 
   /**********************
