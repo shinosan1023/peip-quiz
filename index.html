@@ -8,7 +8,7 @@
   body { font-family: sans-serif; background:#f4f4f4; margin:0; }
   h1 { margin:0; padding:16px; text-align:center; background:#fff; color:#444; }
 
-  /* トップバー（スタート前も見える音声トグル＋ホームへ） */
+  /* トップバー */
   .topbar { display:flex; gap:10px; justify-content:center; align-items:center; flex-wrap:wrap; padding:10px; background:#fff; border-bottom:1px solid #eee; }
   .sound-toggle { display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; background:#fff; border:1px solid #ddd; }
   .sound-toggle input { width:20px; height:20px; }
@@ -52,7 +52,7 @@
   th, td { padding:8px; border-bottom:1px solid #e9e9e9; }
   th { background:#fafafa; text-align:left; }
   .num { text-align:right; }
-  .crown { font-size:28px; line-height:1; }
+  .crown { font-size:28px; line-height:1; } /* 絵文字のサイズ */
 
   /* 操作ボタン（ゲーム中） */
   #controlButtons { margin-top:10px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
@@ -70,8 +70,8 @@
   .report-item { margin:8px 0; }
   .wrong { color:#d9534f; }
   .correct { color:#2e7d32; }
-  .rankWrap { margin:8px 0 14px; font-size:18px; }
-  .rankWrap .rankNum { color:#d32f2f; font-weight:900; font-size:28px; }
+  .rankLine { font-size:16px; margin:6px 0 2px; }
+  .rankBoldRed { color:#d32f2f; font-weight:800; font-size:28px; }
 
   /* カウントダウン・オーバーレイ */
   #countOverlay{
@@ -344,35 +344,14 @@
 
   /**********************
    * ランキング（完走者のみ・同じ問題数）
-   * まず理想クエリ、失敗時はフォールバック（全件→クライアントソート）
    **********************/
   async function fetchTop10ByTime(){
-    try{
-      const snap = await db.collection('scores')
-        .where('completed','==', true)
-        .where('totalQuestions','==', TOTAL_QUESTIONS)
-        .orderBy('time','asc').orderBy('correct','desc').orderBy('createdAt','asc')
-        .limit(10).get();
-      const list=[]; snap.forEach(d=>list.push({ id:d.id, ...d.data() }));
-      return list;
-    }catch(e){
-      // インデックス未作成や権限の軽微な問題はフォールバック
-      const all = await db.collection('scores')
-        .where('completed','==', true)
-        .where('totalQuestions','==', TOTAL_QUESTIONS)
-        .get();
-      const list=[]; all.forEach(d=>list.push({ id:d.id, ...d.data() }));
-      list.sort((a,b)=>{
-        const t=(a.time||0)-(b.time||0);
-        if(t!==0) return t;
-        const c=(b.correct||0)-(a.correct||0);
-        if(c!==0) return c;
-        const ca=(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0);
-        if(ca!==0) return ca;
-        return (new Date(a.createdAtLocal||0))-(new Date(b.createdAtLocal||0));
-      });
-      return list.slice(0,10);
-    }
+    const snap = await db.collection('scores')
+      .where('completed','==', true)
+      .where('totalQuestions','==', TOTAL_QUESTIONS)
+      .orderBy('time','asc').orderBy('correct','desc').orderBy('createdAt','asc')
+      .limit(10).get();
+    const list=[]; snap.forEach(d=>list.push({ id:d.id, ...d.data() })); return list;
   }
 
   async function renderTop10(){
@@ -398,110 +377,135 @@
       box.innerHTML = html;
     }catch(e){
       console.error(e);
-      box.textContent="ランキング取得に失敗しました。しばらくしてから再度お試しください。";
+      box.innerHTML = `
+        <div style="padding:10px;">ランキング取得に失敗しました。</div>
+        <div style="text-align:center; margin-top:8px;">
+          <button class="btn btn-secondary" onclick="renderTop10()">再読み込み</button>
+        </div>`;
     }
   }
 
   /**********************
-   * ゲーム終了 → Firestore記録 → 順位計算（フォールバック内蔵）
+   * ゲーム終了 → Firestore記録 → 順位計算（即時計算・入力欄即表示）
    **********************/
   function endGame(){ clearInterval(elapsedTimer); showFinalReport(true); }
 
+  // 並び順ルールで配列をソート
+  function sortScores(a,b){
+    if(a.time !== b.time) return a.time - b.time;               // 1) time asc
+    if(a.correct !== b.correct) return b.correct - a.correct;   // 2) correct desc
+    // 3) createdAt(サーバ時刻) → フォールバックで createdAtLocal(文字列) → id
+    const ax = a.createdAt? a.createdAt.seconds : 0;
+    const bx = b.createdAt? b.createdAt.seconds : 0;
+    if(ax !== bx) return ax - bx;
+    if(a.createdAtLocal !== b.createdAtLocal) return (a.createdAtLocal||"") < (b.createdAtLocal||"") ? -1 : 1;
+    return (a.id||"") < (b.id||"") ? -1 : 1;
+  }
+
   async function showFinalReport(finished){
-    // 表示切替
+    // 画面切り替え
     document.getElementById('gameArea').style.display = "none";
 
     const totalTimeSec = Number(((Date.now() - startTime - totalPausedTime + penaltyTime)/1000).toFixed(2));
     const answered = finished ? TOTAL_QUESTIONS : current;
     const percent  = ((score / (answered||1)) * 100).toFixed(1);
 
-    // 記録保存
+    // まず自分の記録を Firestore に保存
     let myDocId = null;
+    const myLocalDoc = {
+      name:"", comment:"",
+      correct: score,
+      time: totalTimeSec,
+      totalQuestions: TOTAL_QUESTIONS,
+      answered: answered,
+      completed: !!finished,
+      createdAtLocal: new Date().toISOString()
+    };
     try{
       const docRef = await db.collection('scores').add({
-        name:"", comment:"",
-        correct: score,
-        time: totalTimeSec,
-        totalQuestions: TOTAL_QUESTIONS,
-        answered: answered,
-        completed: !!finished,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        createdAtLocal: new Date().toISOString()
+        ...myLocalDoc,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
       myDocId = docRef.id;
-    }catch(e){ console.error(e); }
+    }catch(e){
+      console.error(e);
+    }
 
-    // 完走者のみで順位計算（失敗時フォールバック：全件→クライアントソート）
-    let myRank = null, finishers = 0, sorted = [];
+    // 完走者のみで順位を取得（即時性担保のため、取得結果に自分を合流して再ソート）
+    let myRank = null, finishers = 0, finishersList = [];
     try{
       const snap = await db.collection('scores')
         .where('completed','==', true)
         .where('totalQuestions','==', TOTAL_QUESTIONS)
         .orderBy('time','asc').orderBy('correct','desc').orderBy('createdAt','asc')
         .get();
-      snap.forEach((d,i)=>{ finishers++; if(d.id===myDocId) myRank=i+1; });
+
+      snap.forEach(d=> finishersList.push({ id:d.id, ...d.data() }));
+      finishers = finishersList.length;
+
+      // クエリに自分がまだ反映されていない場合はローカルで追加
+      if(finished){
+        const already = finishersList.some(x => x.id === myDocId);
+        if(!already){
+          finishersList.push({ id: myDocId, ...myLocalDoc }); // createdAt は未確定なので local だけ
+          finishers += 1;
+        }
+      }
+
+      // 並べ直し & 自分の順位を算出
+      finishersList.sort(sortScores);
+      myRank = finishersList.findIndex(x => x.id === myDocId) + 1 || null;
     }catch(e){
-      try{
-        const all = await db.collection('scores')
-          .where('completed','==', true)
-          .where('totalQuestions','==', TOTAL_QUESTIONS)
-          .get();
-        all.forEach(d=>sorted.push({ id:d.id, ...d.data() }));
-        finishers = sorted.length;
-        sorted.sort((a,b)=>{
-          const t=(a.time||0)-(b.time||0);
-          if(t!==0) return t;
-          const c=(b.correct||0)-(a.correct||0);
-          if(c!==0) return c;
-          const ca=(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0);
-          if(ca!==0) return ca;
-          return (new Date(a.createdAtLocal||0))-(new Date(b.createdAtLocal||0));
-        });
-        myRank = sorted.findIndex(x=>x.id===myDocId)+1 || null;
-      }catch(e2){ console.error(e2); }
+      console.error(e);
+      // 失敗時でも最低限、完走者=1・順位=1として表示（オフライン等）
+      if(finished){ finishers = 1; myRank = 1; }
     }
 
-    // レポート組み立て（順位は上部で強調）
-    let html = `<h3>結果発表</h3>
+    // 表示 HTML の構築
+    let html = `
+      <div style="display:flex; gap:8px; justify-content:flex-end; margin-bottom:8px;">
+        <button class="btn btn-link" id="viewRankTopBtn">ランキング表をみる</button>
+      </div>
+      <h3>結果発表</h3>
       <p>正解数: <strong>${score}</strong> / ${finished?TOTAL_QUESTIONS:answered}</p>
       <p>正解率: <strong>${percent}%</strong></p>
       <p>かかった時間: <strong>${totalTimeSec.toFixed(2)}秒</strong></p>`;
 
-    if(!finished){
+    // 順位表示（常時）
+    if(finished && myRank){
+      html += `<p class="rankLine">完走者 <strong>${finishers}</strong> 人中 <span class="rankBoldRed">${myRank}</span> 位</p>`;
+    }else if(!finished){
       html += `<p class="wrong">次回は、完走（${TOTAL_QUESTIONS}問チャレンジ）をお待ちしています！</p>`;
     }
 
-    if(finished && finishers>0 && myRank){
-      html += `<div class="rankWrap">完走者 <strong>${finishers}</strong> 人中 <span class="rankNum">${myRank}位</span></div>`;
-    }else if(finished){
-      html += `<div class="rankWrap">完走者 <strong>—</strong> 人中 <span class="rankNum">集計中</span></div>`;
+    if(finished && wrongList.length===0){
+      html += `<p class="correct">全問正解！おめでとうございます！</p>`;
     }
 
-    // 入力可否（完走していて、完走者<10 か TOP10入り）
+    // --- 入力可否の条件 ---
+    // 完走している かつ (完走者が10人未満 or 自分がTOP10)
     const canEditProfile = finished && ( (finishers < 10) || (myRank && myRank <= 10) );
 
+    // 入力欄（※ 間違い一覧より上に配置）
     if(canEditProfile){
       html += `
         <hr>
         <h4>ランキング用の名前・コメント</h4>
         <p>※ コメントは<strong>20文字以内</strong>です</p>
-        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:8px;">
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
           <input id="nameInput" placeholder="名前（任意）" style="padding:8px;border:1px solid #ccc;border-radius:8px;">
           <input id="commentInput" placeholder="コメント（20文字以内）" maxlength="20" style="flex:1;min-width:200px;padding:8px;border:1px solid #ccc;border-radius:8px;">
           <button class="btn btn-success" id="submitBtn">送信</button>
         </div>
-        <div id="submitMsg" style="margin:6px 0 12px;"></div>
+        <div id="submitMsg" style="margin-top:8px;"></div>
       `;
-    }else if(finished && finishers >= 10 && myRank && myRank > 10){
-      html += `<p class="rankWrap">総順位：<strong>${finishers}</strong>人中 <span class="rankNum">${myRank}位</span></p>`;
-      html += `<hr>`;
-    }else{
-      html += `<hr>`;
+    }else if(finished && myRank && myRank > 10){
+      html += `<p class="rankLine">完走おつかれさまでした！ あなたは <strong>${finishers}</strong> 人中 <span class="rankBoldRed">${myRank}</span> 位でした。</p>`;
     }
 
-    // 「間違った問題」は入力欄より下に表示
+    // 間違い一覧
     if(wrongList.length){
-      html += `<h4>間違った問題</h4>`;
+      html += `<hr><h4>間違った問題</h4>`;
       wrongList.forEach(x=>{
         html += `<div class="report-item">
           <div><strong>問題:</strong> ${esc(x.q)}</div>
@@ -509,13 +513,14 @@
           <div class="correct"><strong>正解:</strong> ${esc(x.right)}</div>
         </div>`;
       });
-    }else if(finished){
-      html += `<p class="correct">全問正解！おめでとうございます！</p>`;
     }
 
+    // 戻るなど
     html += `
-      <div style="margin-top:12px;">
+      <hr>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
         <button class="btn btn-secondary" onclick="goHome()">スタート画面に戻る</button>
+        <button class="btn btn-link" id="viewRankBottomBtn">ランキング表をみる</button>
       </div>
     `;
 
@@ -523,6 +528,19 @@
     report.innerHTML = html;
     report.style.display = "block";
 
+    // 「ランキング表をみる」：上＆下の両方
+    const hookView = btnId=>{
+      const btn = document.getElementById(btnId);
+      if(btn) btn.onclick = async ()=>{
+        goHome();
+        await renderTop10();
+        window.scrollTo({ top:0, behavior:'smooth' });
+      };
+    };
+    hookView('viewRankTopBtn');
+    hookView('viewRankBottomBtn');
+
+    // 入力イベント（許可時のみ）
     if(canEditProfile && myDocId){
       const btn = document.getElementById('submitBtn');
       const msg = document.getElementById('submitMsg');
@@ -536,7 +554,11 @@
           document.getElementById('nameInput').disabled = true;
           document.getElementById('commentInput').disabled = true;
           btn.style.display = "none";
-        }catch(e){ console.error(e); msg.textContent = "送信に失敗しました。時間をおいてお試しください。"; btn.disabled = false; }
+        }catch(e){
+          console.error(e);
+          msg.textContent = "送信に失敗しました。時間をおいてお試しください。";
+          btn.disabled = false;
+        }
       };
     }
   }
@@ -550,7 +572,6 @@
     document.getElementById('gameArea').style.display = "none";
     document.getElementById('startArea').style.display = "block";
     document.getElementById('startButton').disabled = false;
-    // 起動時にTOP10は自動で読み込む
   }
 
   /**********************
