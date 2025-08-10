@@ -8,23 +8,27 @@
   body { font-family: sans-serif; background:#f4f4f4; margin:0; }
   h1 { margin:0; padding:16px; text-align:center; background:#fff; color:#444; }
 
+  /* トップバー */
   .topbar { display:flex; gap:10px; justify-content:center; align-items:center; flex-wrap:wrap; padding:10px; background:#fff; border-bottom:1px solid #eee; }
   .sound-toggle { display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; background:#fff; border:1px solid #ddd; }
   .sound-toggle input { width:20px; height:20px; }
   #soundLabel { font-weight:600; }
   .homeBtn { margin-left:10px; padding:8px 12px; border:none; border-radius:8px; background:#6c757d; color:#fff; cursor:pointer; }
 
+  /* スタート画面 */
   #startArea { padding:16px; }
   #top10Box { max-width:960px; margin: 10px auto; background:#fff; border-radius:10px; padding:14px; }
   #startButtons { text-align:center; margin:18px 0; }
   #startButton { background:#ff69b4; color:#fff; border:none; padding:14px 36px; font-size:18px; border-radius:12px; cursor:pointer; }
 
+  /* ゲーム情報バー */
   #gameArea { max-width:980px; margin:0 auto; }
   .info { display:flex; justify-content:center; align-items:center; gap:16px; flex-wrap:wrap; margin:10px; }
   .badge { display:inline-block; padding:4px 10px; border-radius:999px; font-weight:700; }
   .elapsed-badge { background:#e3f7ff; border:2px solid #5bc0de; color:#0b6d85; }
   .acc-badge { background:#fff6e0; border:2px solid #f0ad4e; color:#856404; }
 
+  /* 問題と回答ボタン */
   .question { text-align:center; font-size:22px; margin:10px 12px; }
   .buttons { display:flex; flex-wrap:wrap; justify-content:center; gap:14px; margin:12px; }
   .btn-circle{
@@ -43,15 +47,15 @@
 
   .result { text-align:center; font-size:18px; min-height:1.6em; margin:8px 0; }
 
+  /* ランキング表 */
   table { width:100%; border-collapse:collapse; }
   th, td { padding:8px; border-bottom:1px solid #e9e9e9; }
   th { background:#fafafa; text-align:left; }
   .num { text-align:right; }
   .crown { font-size:28px; line-height:1; }
+  .rankEmph { color:#d32f2f; font-weight:900; font-size:28px; }
 
-  /* 順位の強調（赤く大きく太字） */
-  .rankEm { color:#d9534f; font-weight:900; font-size:28px; }
-
+  /* 操作ボタン（ゲーム中） */
   #controlButtons { margin-top:10px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
   .btn { padding:10px 16px; border:none; border-radius:10px; cursor:pointer; }
   .btn-primary { background:#007bff; color:#fff; }
@@ -61,22 +65,25 @@
   .btn-success { background:#28a745; color:#fff; }
   .btn-link { background:transparent; color:#007bff; text-decoration:underline; cursor:pointer; border:none; }
 
+  /* 結果 */
   #finalReport { max-width:960px; margin:16px auto; background:#fff; border-radius:10px; padding:14px; display:none; }
   #finalReport h3{ margin-top:0; }
   .report-item { margin:8px 0; }
   .wrong { color:#d9534f; }
   .correct { color:#2e7d32; }
 
+  /* カウントダウン・オーバーレイ（フェード無し） */
   #countOverlay{
     position:fixed; inset:0; display:none; align-items:center; justify-content:center;
     background:rgba(0,0,0,.65); color:#fff; z-index:9999;
-    font-weight:900; text-shadow:0 4px 14px rgba(0,0,0,.6);
-    user-select:none; font-size:120px;
+    font-weight:900; text-shadow:0 4px 14px rgba(0,0,0,.6); user-select:none;
+    font-size:120px;
   }
   #countText { display:block; }
   @keyframes popscale { 0%{transform:scale(.7)} 60%{transform:scale(1.15)} 100%{transform:scale(1)} }
   .pop { animation: popscale .35s ease-out; }
 
+  /* フッター注意文 */
   footer { margin:18px auto 28px; max-width:960px; font-size:12px; color:#555; padding:0 12px; }
   footer .note { background:#fff; border:1px solid #eee; border-radius:8px; padding:10px; }
 </style>
@@ -84,6 +91,7 @@
 <body>
   <h1>P.E.I.P. 分類クイズ</h1>
 
+  <!-- 常時表示のトップバー -->
   <div class="topbar">
     <label class="sound-toggle" title="効果音 ON/OFF">
       <input type="checkbox" id="soundToggle" checked />
@@ -92,6 +100,7 @@
     <button class="homeBtn" onclick="goHome()">スタート画面に戻る</button>
   </div>
 
+  <!-- スタート画面 -->
   <div id="startArea">
     <div style="text-align:center; margin:8px 0;">
       <h2 style="margin:6px 0;">ランキング TOP10（タイムが短い順）</h2>
@@ -103,6 +112,7 @@
     </div>
   </div>
 
+  <!-- ゲーム画面 -->
   <div id="gameArea" style="display:none;">
     <div class="info">
       <span>スコア: <strong id="score">0</strong></span>
@@ -128,19 +138,25 @@
     </div>
   </div>
 
+  <!-- 結果表示 -->
   <div id="finalReport"></div>
 
+  <!-- カウントダウン表示 -->
   <div id="countOverlay"><span id="countText">3</span></div>
 
+  <!-- 効果音 -->
   <audio id="correctSound"   src="se_correct.mp3"  preload="auto"></audio>
   <audio id="wrongSound"     src="se_wrong.mp3"    preload="auto"></audio>
   <audio id="countdownSound" src="countdown.mp3"   preload="auto"></audio>
 
+  <!-- Firebase（Firestore） -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
   <script>
-  /* ===== Firebase ===== */
+  /* ======================
+     Firebase 設定
+  ====================== */
   const firebaseConfig = {
     apiKey: "AIzaSyARGroRdf4DmJN5nOHdiVy-a9UCA1ruDPw",
     authDomain: "peip-quiz.firebaseapp.com",
@@ -153,7 +169,9 @@
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
 
-  /* ===== Utils ===== */
+  /* ======================
+     ユーティリティ
+  ====================== */
   const labelMap = { P:"きもち", E:"まわり", I:"できること", Ph:"からだ＆病気" };
   const crown = (i)=> i===1?'🥇':i===2?'🥈':i===3?'🥉':i;
   const fmtTime = (sec)=> (Number(sec)||0).toFixed(2) + "s";
@@ -163,8 +181,10 @@
   };
   const esc = (s)=>String(s||"").replace(/[&<>"'`=\/]/g,c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','/':'&#x2F;','=':'&#x3D;','`':'&#x60;' }[c]));
 
-  /* ===== Questions ===== */
-  const questions = [ /* 省略せず掲載（50問） */ 
+  /* ======================
+     問題
+  ====================== */
+  const questions = [
     { text: "孫に会いたいと思っているか？", answer: "P" },{ text: "洗濯物にしわはあるか？", answer: "E" },
     { text: "トイレで立位をとることができるか？", answer: "I" },{ text: "便秘はないか？", answer: "Ph" },
     { text: "朝食の飲み物にこだわりはあるか？", answer: "P" },{ text: "居室の手すりにぐらつきはないか？", answer: "E" },
@@ -193,133 +213,157 @@
   ];
   const TOTAL_QUESTIONS = questions.length;
 
-  /* ===== Game State ===== */
+  /* ======================
+     ゲーム状態
+  ====================== */
   let current = 0, score = 0;
   let startTime = 0, elapsedTimer = null;
   let penaltyTime = 0;
   let wrongList = [];
   let paused = false, pauseStartTime = 0, totalPausedTime = 0;
 
+  /* サウンド */
   let soundEnabled = true;
   const soundToggle = document.getElementById('soundToggle');
   const soundLabel  = document.getElementById('soundLabel');
-  soundToggle.addEventListener('change', ()=>{
-    soundEnabled = soundToggle.checked;
-    soundLabel.textContent = soundEnabled ? '音声: ON' : '音声: OFF';
-  });
-  const playOnce = (id)=>{ if(!soundEnabled) return; const el=document.getElementById(id); try{ el.currentTime=0; el.play(); }catch(e){} };
+  soundToggle.addEventListener('change', ()=>{ soundEnabled = soundToggle.checked; soundLabel.textContent = soundEnabled ? '音声: ON' : '音声: OFF'; });
+  const playOnce = (id)=>{ if(!soundEnabled) return; const el = document.getElementById(id); try{ el.currentTime = 0; el.play(); }catch(e){} };
 
   const shuffle = (a)=>{ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } };
 
-  /* ===== Countdown ===== */
+  /* ======================
+     カウントダウン
+  ====================== */
   const COUNTDOWN_MARKERS = [{time:0.00,label:"3"},{time:0.90,label:"2"},{time:1.80,label:"1"},{time:2.65,label:"スタート！"}];
   const HOLD_AFTER_START = 1.80, EPS = 0.015;
 
   function startCountdown(){
     document.getElementById("startButton").disabled = true;
-    const cd=document.getElementById("countdownSound");
-    const overlay=document.getElementById("countOverlay");
-    const text=document.getElementById("countText");
-    overlay.style.display="flex";
-    let idx=0;
+    const cd = document.getElementById("countdownSound");
+    const overlay = document.getElementById("countOverlay");
+    const text = document.getElementById("countText");
+    overlay.style.display = "flex";
+    let idx = 0;
     const endTime = COUNTDOWN_MARKERS.at(-1).time + HOLD_AFTER_START + 0.05;
 
-    const showLabel=(s)=>{ if(text.textContent!==s){ text.textContent=s; text.classList.remove('pop'); void text.offsetWidth; text.classList.add('pop'); } };
+    const showLabel = (s)=>{ if(text.textContent!==s){ text.textContent=s; text.classList.remove('pop'); void text.offsetWidth; text.classList.add('pop'); }};
 
-    const begin=()=>{
-      const t0=performance.now();
-      const tick=()=>{
-        const elapsed=(performance.now()-t0)/1000;
-        const cur=cd.currentTime || elapsed;
+    const begin = ()=>{
+      const t0 = performance.now();
+      const tick = ()=>{
+        const elapsed = (performance.now()-t0)/1000;
+        const cur = cd.currentTime || elapsed;
         while(idx<COUNTDOWN_MARKERS.length && cur+EPS>=COUNTDOWN_MARKERS[idx].time){ showLabel(COUNTDOWN_MARKERS[idx].label); idx++; }
-        if(elapsed<endTime){ requestAnimationFrame(tick); } else { overlay.style.display="none"; beginGame(); }
+        if(elapsed<endTime){ requestAnimationFrame(tick); }else{ overlay.style.display="none"; beginGame(); }
       };
       if(soundEnabled){ try{ cd.currentTime=0; cd.play().catch(()=>{});}catch(e){} }
       tick();
     };
-    if(cd.readyState<1){ cd.addEventListener('loadedmetadata', begin, {once:true}); setTimeout(()=>{ if(cd.readyState<1) begin(); },400); }
+
+    if (cd.readyState < 1) { cd.addEventListener('loadedmetadata', begin, {once:true}); setTimeout(()=>{ if(cd.readyState<1) begin(); }, 400); }
     else begin();
   }
 
-  /* ===== Game Core ===== */
+  /* ======================
+     ゲーム本体
+  ====================== */
   function beginGame(){
-    document.getElementById('startArea').style.display="none";
-    document.getElementById('gameArea').style.display="block";
-    document.getElementById('finalReport').style.display="none";
+    document.getElementById('startArea').style.display = "none";
+    document.getElementById('gameArea').style.display = "block";
+    document.getElementById('finalReport').style.display = "none";
 
     shuffle(questions);
-    current=0; score=0; penaltyTime=0; wrongList=[];
-    paused=false; pauseStartTime=0; totalPausedTime=0;
+    current = 0; score = 0; penaltyTime = 0; wrongList = [];
+    paused = false; pauseStartTime = 0; totalPausedTime = 0;
 
     document.getElementById('totalQuestions').textContent = TOTAL_QUESTIONS;
     document.getElementById('score').textContent = score;
     document.getElementById('accuracy').textContent = "0.0%";
     document.getElementById('result').textContent = "";
 
-    startTime=Date.now();
-    elapsedTimer=setInterval(updateElapsed, 50);
+    startTime = Date.now();
+    elapsedTimer = setInterval(updateElapsed, 50);
     showQuestion();
   }
 
   function updateElapsed(){
-    const sec=(Date.now()-startTime-totalPausedTime+penaltyTime)/1000;
-    document.getElementById('elapsed').textContent=sec.toFixed(2);
+    const sec = (Date.now() - startTime - totalPausedTime + penaltyTime) / 1000;
+    document.getElementById('elapsed').textContent = sec.toFixed(2);
   }
 
   function showQuestion(){
-    if(current>=TOTAL_QUESTIONS){ endGame(); return; }
+    if(current >= TOTAL_QUESTIONS){ endGame(); return; }
     document.getElementById('question').textContent = questions[current].text;
-    document.getElementById('questionNumber').textContent = current+1;
+    document.getElementById('questionNumber').textContent = current + 1;
     document.getElementById('result').textContent = "";
   }
 
   function updateAccuracy(){
-    const answered=Math.max(current,1);
-    const rate=((score/answered)*100).toFixed(1);
-    document.getElementById('accuracy').textContent=`${rate}%`;
+    const answered = Math.max(current, 1);
+    const rate = ((score / answered) * 100).toFixed(1);
+    document.getElementById('accuracy').textContent = `${rate}%`;
   }
 
   function checkAnswer(choice){
     if(paused) return;
-    const correct=questions[current].answer;
-    if(choice===correct){
-      score++; document.getElementById('result').textContent="⭕ 正解！"; playOnce("correctSound");
+    const correct = questions[current].answer;
+    if(choice === correct){
+      score++; document.getElementById('result').textContent = "⭕ 正解！"; playOnce("correctSound");
     }else{
-      document.getElementById('result').textContent=`❌ 不正解（正解: ${labelMap[correct]}）`;
+      document.getElementById('result').textContent = `❌ 不正解（正解: ${labelMap[correct]}）`;
       playOnce("wrongSound");
-      wrongList.push({ q:questions[current].text, your:labelMap[choice]||"（無回答）", right:labelMap[correct] });
+      wrongList.push({ q: questions[current].text, your: labelMap[choice]||"（無回答）", right: labelMap[correct] });
       penaltyTime += 10000; updateElapsed();
     }
-    document.getElementById('score').textContent=score;
+    document.getElementById('score').textContent = score;
     current++; updateAccuracy(); setTimeout(showQuestion, 900);
   }
 
   function togglePause(){
     if(!paused){
-      paused=true; pauseStartTime=Date.now(); clearInterval(elapsedTimer);
-      document.getElementById('pauseButton').textContent="▶ 再開";
-      document.getElementById('result').textContent="⏸ 一時停止中";
+      paused = true; pauseStartTime = Date.now(); clearInterval(elapsedTimer);
+      document.getElementById('pauseButton').textContent = "▶ 再開";
+      document.getElementById('result').textContent = "⏸ 一時停止中";
     }else{
-      paused=false; totalPausedTime += Date.now()-pauseStartTime; elapsedTimer=setInterval(updateElapsed,50);
-      document.getElementById('pauseButton').textContent="⏸ 一時停止"; document.getElementById('result').textContent="";
+      paused = false; totalPausedTime += Date.now() - pauseStartTime; elapsedTimer = setInterval(updateElapsed, 50);
+      document.getElementById('pauseButton').textContent = "⏸ 一時停止"; document.getElementById('result').textContent = "";
     }
   }
 
   function quitGame(){
     if(confirm("ゲームを終了しますか？")){
       clearInterval(elapsedTimer);
-      showFinalReport(false);
+      showFinalReport(false); // 完走ではない
     }
   }
 
-  /* ===== Ranking (finishers only, same question count) ===== */
+  /* ======================
+     ランキング取得（完走者のみ・同じ問題数）
+     createdAtLocal を優先、失敗時に createdAt へフォールバック
+  ====================== */
   async function fetchTop10ByTime(){
-    const snap = await db.collection('scores')
+    const base = db.collection('scores')
       .where('completed','==', true)
-      .where('totalQuestions','==', TOTAL_QUESTIONS)
-      .orderBy('time','asc').orderBy('correct','desc').orderBy('createdAt','asc')
-      .limit(10).get();
-    const list=[]; snap.forEach(d=>list.push({ id:d.id, ...d.data() })); return list;
+      .where('totalQuestions','==', TOTAL_QUESTIONS);
+
+    // 1st: createdAtLocal（即時表示向け）
+    try{
+      const snap = await base
+        .orderBy('time','asc').orderBy('correct','desc').orderBy('createdAtLocal','asc')
+        .limit(10).get();
+      const list=[]; snap.forEach(d=>list.push({ id:d.id, ...d.data() })); return list;
+    }catch(e1){
+      console.warn('Top10 createdAtLocal 失敗 -> createdAt にフォールバック', e1);
+      try{
+        const snap2 = await base
+          .orderBy('time','asc').orderBy('correct','desc').orderBy('createdAt','asc')
+          .limit(10).get();
+        const list2=[]; snap2.forEach(d=>list2.push({ id:d.id, ...d.data() })); return list2;
+      }catch(e2){
+        console.error('Top10 両方失敗', e2);
+        throw e2;
+      }
+    }
   }
 
   async function renderTop10(){
@@ -328,7 +372,7 @@
     try{
       const rows=await fetchTop10ByTime();
       if(!rows.length){ box.textContent="まだ記録がありません"; return; }
-      let html=`<table><thead><tr>
+      let html = `<table><thead><tr>
         <th>順位</th><th>名前</th><th class="num">正解</th><th class="num">タイム</th><th>日時</th><th>コメント</th>
       </tr></thead><tbody>`;
       rows.forEach((r,i)=>{
@@ -337,44 +381,34 @@
           <td>${esc(r.name)||"名無し"}</td>
           <td class="num">${Number(r.correct)||0}</td>
           <td class="num">${fmtTime(r.time)}</td>
-          <td>${fmtDate(r.createdAtLocal)}</td>
+          <td>${fmtDate(r.createdAtLocal||r.createdAt)}</td>
           <td>${esc(r.comment)||""}</td>
         </tr>`;
       });
       html += `</tbody></table>`;
       box.innerHTML = html;
-    }catch(e){ console.error(e); box.textContent="ランキング取得に失敗しました。"; }
-  }
-
-  /* ===== Save & Rank (with retry) ===== */
-  async function endGame(){ clearInterval(elapsedTimer); showFinalReport(true); }
-
-  // 保存後、最大3回まで再取得してランクを確定させる
-  async function fetchFinishersAndRankWithRetry(myDocId, tries=3){
-    for(let i=0;i<tries;i++){
-      let finishers=0, myRank=null;
-      try{
-        const snap = await db.collection('scores')
-          .where('completed','==', true)
-          .where('totalQuestions','==', TOTAL_QUESTIONS)
-          .orderBy('time','asc').orderBy('correct','desc').orderBy('createdAt','asc')
-          .get();
-        snap.forEach((d,idx)=>{ finishers++; if(d.id===myDocId) myRank=idx+1; });
-      }catch(e){ console.error(e); }
-      if(myRank!==null || i===tries-1) return {finishers, myRank};
-      await new Promise(r=>setTimeout(r,600)); // 少し待って再試行
+    }catch(e){
+      console.error(e);
+      box.textContent="ランキング取得に失敗しました。";
     }
   }
 
-  async function showFinalReport(finished){
-    document.getElementById('gameArea').style.display="none";
+  /* ======================
+     ゲーム終了 → Firestore記録 → 順位計算
+  ====================== */
+  function endGame(){ clearInterval(elapsedTimer); showFinalReport(true); }
 
-    const totalTimeSec = Number(((Date.now()-startTime-totalPausedTime+penaltyTime)/1000).toFixed(2));
+  async function showFinalReport(finished){
+    // 画面切り替え
+    document.getElementById('gameArea').style.display = "none";
+
+    const totalTimeSec = Number(((Date.now() - startTime - totalPausedTime + penaltyTime)/1000).toFixed(2));
     const answered = finished ? TOTAL_QUESTIONS : current;
     const percent  = ((score / (answered||1)) * 100).toFixed(1);
 
-    // 保存
-    let myDocId=null;
+    // まず記録保存
+    let myDocId = null;
+    const createdAtLocal = new Date().toISOString();
     try{
       const docRef = await db.collection('scores').add({
         name:"", comment:"",
@@ -384,43 +418,50 @@
         answered: answered,
         completed: !!finished,
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        createdAtLocal: new Date().toISOString()
+        createdAtLocal
       });
       myDocId = docRef.id;
-    }catch(e){ console.error(e); }
-
-    // 完走者のみで順位（再試行付き）
-    let finishers=0, myRank=null;
-    if(finished && myDocId){
-      const res = await fetchFinishersAndRankWithRetry(myDocId, 3);
-      finishers = res.finishers; myRank = res.myRank;
-    }else{
-      // 未完走のときでも完走者総数は表示に使いたいので取得
-      try{
-        const snap = await db.collection('scores')
-          .where('completed','==', true)
-          .where('totalQuestions','==', TOTAL_QUESTIONS)
-          .get();
-        finishers = snap.size;
-      }catch(e){ console.error(e); }
+    }catch(e){
+      console.error(e);
     }
+
+    // 完走者のみで順位計算（createdAtLocal 優先）
+    let myRank = null, finishers = 0;
+    try{
+      const base = db.collection('scores')
+        .where('completed','==', true)
+        .where('totalQuestions','==', TOTAL_QUESTIONS);
+
+      let snap;
+      try{
+        snap = await base.orderBy('time','asc').orderBy('correct','desc').orderBy('createdAtLocal','asc').get();
+      }catch(e1){
+        console.warn('順位計算 createdAtLocal 失敗 -> createdAt', e1);
+        snap = await base.orderBy('time','asc').orderBy('correct','desc').orderBy('createdAt','asc').get();
+      }
+      snap.forEach((d,i)=>{ finishers++; if(d.id===myDocId) myRank=i+1; });
+    }catch(e){ console.error(e); }
 
     let html = `<h3>結果発表</h3>
       <p>正解数: <strong>${score}</strong> / ${finished?TOTAL_QUESTIONS:answered}</p>
       <p>正解率: <strong>${percent}%</strong></p>
       <p>かかった時間: <strong>${totalTimeSec.toFixed(2)}秒</strong></p>`;
 
-    if(finished && finishers>0 && myRank){
-      html += `<p>完走者<strong>${finishers}</strong>人中 <span class="rankEm">${myRank}位</span></p>`;
+    // 完走者の総順位（常に出す / ランク強調）
+    if(finished && finishers){
+      const rankStr = myRank ? `${finishers}人中 <span class="rankEmph">${myRank}位</span>` : `${finishers}人中 <span class="rankEmph">集計中</span>`;
+      html += `<p>あなたの順位（完走者のみ）: ${rankStr}</p>`;
     }else if(!finished){
       html += `<p class="wrong">次回は、完走（${TOTAL_QUESTIONS}問チャレンジ）をお待ちしています！</p>`;
     }
 
-    // —— 入力エリア（今回、間違い一覧の「上」に配置）——
-    // 表示条件：完走 && （finishers < 10 || myRank <= 10 || (myRank==null && finishers < 10)）
-    const canEditProfile = finished && ( (finishers < 10) || (myRank && myRank <= 10) || (myRank===null && finishers < 10) );
+    /* ==== コメント入力（“間違い一覧”より上に配置） ==== 
+       完走者が10人未満 → 完走していれば誰でも入力可
+       完走者が10人以上 → TOP10のみ入力可
+    */
+    const canEditProfile = finished && ( (finishers < 10) || (myRank && myRank <= 10) );
 
-    if(canEditProfile && myDocId){
+    if(canEditProfile){
       html += `
         <hr>
         <h4>ランキング用の名前・コメント</h4>
@@ -431,15 +472,18 @@
           <button class="btn btn-success" id="submitBtn">送信</button>
         </div>
         <div id="submitMsg" style="margin-top:8px;"></div>
+        <div style="margin-top:10px;">
+          <button class="btn btn-link" id="viewRankBtn" style="display:none;">ランキングをみる</button>
+        </div>
       `;
-    }else if(finished && finishers >= 10 && myRank && myRank > 10){
-      html += `<p>完走者<strong>${finishers}</strong>人中 <span class="rankEm">${myRank}位</span></p>`;
-      html += `<hr>`;
-    }else{
-      html += `<hr>`;
+    }else if(finished){
+      html += `
+        <hr>
+        <p style="margin:6px 0;">現在、<b>TOP10 のみ</b>名前・コメントを登録できます。</p>
+      `;
     }
 
-    // —— 間違い一覧（入力欄の「下」）——
+    // 間違い一覧
     if(wrongList.length){
       html += `<h4>間違った問題</h4>`;
       wrongList.forEach(x=>{
@@ -453,48 +497,52 @@
       html += `<p class="correct">全問正解！おめでとうございます！</p>`;
     }
 
-    // 戻るボタン
     html += `
       <div style="margin-top:10px;">
         <button class="btn btn-secondary" onclick="goHome()">スタート画面に戻る</button>
       </div>
     `;
 
-    const report=document.getElementById('finalReport');
-    report.innerHTML=html;
-    report.style.display="block";
+    const report = document.getElementById('finalReport');
+    report.innerHTML = html;
+    report.style.display = "block";
 
-    // 入力イベント
-    if(canEditProfile && myDocId){
-      const btn=document.getElementById('submitBtn');
-      const msg=document.getElementById('submitMsg');
+    // 送信イベント（許可時のみ）
+    if(canEditProfile){
+      const btn = document.getElementById('submitBtn');
+      const msg = document.getElementById('submitMsg');
+      const viewBtn = document.getElementById('viewRankBtn');
       btn.onclick = async ()=>{
-        btn.disabled=true;
-        const name=(document.getElementById('nameInput').value||"");
-        const comment=(document.getElementById('commentInput').value||"").slice(0,20);
+        btn.disabled = true;
+        const name = document.getElementById('nameInput').value || "";
+        const comment = (document.getElementById('commentInput').value || "").slice(0,20);
         try{
           await db.collection('scores').doc(myDocId).update({ name, comment });
-          msg.textContent="送信しました。";
-          document.getElementById('nameInput').disabled=true;
-          document.getElementById('commentInput').disabled=true;
-          btn.style.display="none";
-        }catch(e){
-          console.error(e);
-          msg.textContent="送信に失敗しました。時間をおいてお試しください。";
-          btn.disabled=false;
-        }
+          msg.textContent = "送信しました。";
+          document.getElementById('nameInput').disabled = true;
+          document.getElementById('commentInput').disabled = true;
+          btn.style.display = "none";
+          viewBtn.style.display = "inline-block";
+          viewBtn.onclick = async ()=>{ goHome(); await renderTop10(); window.scrollTo({ top:0, behavior:'smooth' }); };
+        }catch(e){ console.error(e); msg.textContent = "送信に失敗しました。時間をおいてお試しください。"; btn.disabled = false; }
       };
     }
   }
 
+  /* ======================
+     スタート画面に戻る
+  ====================== */
   function goHome(){
-    document.getElementById('countOverlay').style.display="none";
-    document.getElementById('finalReport').style.display="none";
-    document.getElementById('gameArea').style.display="none";
-    document.getElementById('startArea').style.display="block";
-    document.getElementById('startButton').disabled=false;
+    document.getElementById('countOverlay').style.display = "none";
+    document.getElementById('finalReport').style.display = "none";
+    document.getElementById('gameArea').style.display = "none";
+    document.getElementById('startArea').style.display = "block";
+    document.getElementById('startButton').disabled = false;
   }
 
+  /* ======================
+     起動処理
+  ====================== */
   document.addEventListener('DOMContentLoaded', renderTop10);
   </script>
 
