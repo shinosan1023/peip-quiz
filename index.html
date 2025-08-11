@@ -8,18 +8,15 @@
   body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans JP", sans-serif; background:#f4f4f4; margin:0; }
   h1 { margin:0; padding:16px; text-align:center; background:#fff; color:#444; }
 
-  /* トップバー（常時） */
   .topbar { display:flex; gap:10px; justify-content:center; align-items:center; flex-wrap:wrap; padding:10px; background:#fff; border-bottom:1px solid #eee; }
   .sound-toggle { display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; background:#fff; border:1px solid #ddd; }
   .homeBtn { padding:8px 12px; border:none; border-radius:8px; background:#6c757d; color:#fff; cursor:pointer; }
 
-  /* スタート画面 */
   #startArea { padding:16px; }
   #top10Box { max-width:960px; margin: 10px auto; background:#fff; border-radius:10px; padding:14px; }
   #startButtons { text-align:center; margin:0 0 18px; }
   #startButton { background:#ff69b4; color:#fff; border:none; padding:14px 36px; font-size:18px; border-radius:12px; cursor:pointer; }
 
-  /* ゲーム情報バー */
   #gameArea { max-width:980px; margin:0 auto; }
   .info { display:flex; justify-content:center; align-items:center; gap:16px; flex-wrap:wrap; margin:10px; }
   .badge { display:inline-block; padding:4px 10px; border-radius:999px; font-weight:700; }
@@ -36,7 +33,6 @@
 
   .result { text-align:center; font-size:18px; min-height:1.6em; margin:8px 0; }
 
-  /* ランキング表 */
   table { width:100%; border-collapse:collapse; }
   th, td { padding:8px; border-bottom:1px solid #e9e9e9; }
   th { background:#fafafa; text-align:left; }
@@ -45,7 +41,6 @@
   .rankLine { margin:8px 0 0; font-size:16px; color:#555; }
   .rankEm { font-size:32px; font-weight:900; color:#d9534f; }
 
-  /* 操作ボタン（ゲーム中） */
   #controlButtons { margin-top:10px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
   .btn { padding:10px 16px; border:none; border-radius:10px; cursor:pointer; }
   .btn-primary { background:#007bff; color:#fff; }
@@ -55,20 +50,17 @@
   .btn-success { background:#28a745; color:#fff; }
   .btn-link { background:transparent; color:#007bff; text-decoration:underline; border:none; cursor:pointer; }
 
-  /* 結果 */
   #finalReport { max-width:960px; margin:16px auto; background:#fff; border-radius:10px; padding:14px; display:none; }
   #finalReport h3{ margin:0 0 10px; }
   .report-item { margin:8px 0; }
   .wrong { color:#d9534f; }
   .correct { color:#2e7d32; }
 
-  /* カウントダウン */
   #countOverlay{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.65); color:#fff; z-index:9999; font-weight:900; text-shadow:0 4px 14px rgba(0,0,0,.6); user-select:none; font-size:120px; }
   #countText { display:block; }
   @keyframes popscale { 0%{transform:scale(.7)} 60%{transform:scale(1.15)} 100%{transform:scale(1)} }
   .pop { animation: popscale .35s ease-out; }
 
-  /* フッター */
   footer { margin:18px auto 28px; max-width:960px; font-size:12px; color:#555; padding:0 12px; }
   footer .note { background:#fff; border:1px solid #eee; border-radius:8px; padding:10px; }
 </style>
@@ -76,7 +68,6 @@
 <body>
   <h1>P.E.I.P. 分類クイズ</h1>
 
-  <!-- 常時表示のトップバー -->
   <div class="topbar">
     <label class="sound-toggle" title="効果音 ON/OFF">
       <input type="checkbox" id="soundToggle" checked />
@@ -85,7 +76,6 @@
     <button class="homeBtn" onclick="goHome()">スタート画面に戻る</button>
   </div>
 
-  <!-- スタート画面（まずスタートボタン、その下にTOP10表） -->
   <div id="startArea">
     <div id="startButtons">
       <button id="startButton" onclick="startCountdown()">スタート</button>
@@ -97,7 +87,6 @@
     <div id="top10Box">読み込み中...</div>
   </div>
 
-  <!-- ゲーム画面 -->
   <div id="gameArea" style="display:none;">
     <div class="info">
       <span>スコア: <strong id="score">0</strong></span>
@@ -108,7 +97,6 @@
 
     <div class="question" id="question">問題を読み込み中...</div>
 
-    <!-- 回答ボタン -->
     <div class="buttons" id="answerButtons">
       <button class="btn-circle P"  onclick="checkAnswer('P')"><span class="btn-content"><span class="line1">きもち</span><span class="line2">Personality</span><span class="line3">個人</span></span></button>
       <button class="btn-circle E"  onclick="checkAnswer('E')"><span class="btn-content"><span class="line1">まわり</span><span class="line2">Environment</span><span class="line3">環境</span></span></button>
@@ -118,23 +106,20 @@
 
     <div class="result" id="result"></div>
 
-    <!-- 操作ボタン -->
     <div id="controlButtons">
       <button class="btn btn-warning" id="pauseButton" onclick="togglePause()">⏸ 一時停止</button>
       <button class="btn btn-danger"  id="quitButton"  onclick="quitGame()">⏹ やめる</button>
     </div>
   </div>
 
-  <!-- 結果表示 -->
   <div id="finalReport"></div>
 
-  <!-- カウントダウン表示 -->
   <div id="countOverlay"><span id="countText">3</span></div>
 
-  <!-- 効果音 -->
-  <audio id="correctSound"   src="se_correct.mp3"  preload="auto"></audio>
-  <audio id="wrongSound"     src="se_wrong.mp3"    preload="auto"></audio>
-  <audio id="countdownSound" src="countdown.mp3"   preload="auto"></audio>
+  <!-- 効果音（iOS安定化のため playsinline 付与） -->
+  <audio id="correctSound"   src="se_correct.mp3"  preload="auto" playsinline></audio>
+  <audio id="wrongSound"     src="se_wrong.mp3"    preload="auto" playsinline></audio>
+  <audio id="countdownSound" src="countdown.mp3"   preload="auto" playsinline></audio>
 
   <!-- Firebase（Firestore） -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -187,7 +172,7 @@
     { text: "食べたいものはあるか？", answer: "P" },{ text: "自宅で10ミリ以上の段差があるのはどこか？", answer: "E" },
     { text: "自分でお茶を入れて飲むことはできるか？", answer: "I" },{ text: "夜間の頻尿の有無", answer: "Ph" },
     { text: "習慣となっていることは何か？", answer: "P" },{ text: "介護保険制度で利用しているサービスは何か？", answer: "E" },
-    { text: "朝の体操で体を動かすことはできているか？", answer: "I" },{ text: "ふらつきはないか？", answer: "I" },
+    { text: "朝の体操で体を動かすことはできているか？", answer: "I" },{ text: "ふらつきはないか？", answer: "Ph" },
     { text: "趣味（編み物）を再開したいという思いはあるか？", answer: "P" },{ text: "居室の温度・室温は？", answer: "E" },
     { text: "自分で食事を準備することはできるか？", answer: "I" },{ text: "腰痛など体の痛みはないか？", answer: "Ph" },
     { text: "調味料にこだわりはあるか？", answer: "P" },{ text: "テレビのボリュームはいくつか？", answer: "E" },
@@ -215,8 +200,49 @@
   let soundEnabled = true;
   const soundToggle = document.getElementById('soundToggle');
   const soundLabel  = document.getElementById('soundLabel');
-  soundToggle.addEventListener('change', ()=>{ soundEnabled = soundToggle.checked; soundLabel.textContent = soundEnabled ? '音声: ON' : '音声: OFF'; });
-  const playOnce = (id)=>{ if(!soundEnabled) return; const el = document.getElementById(id); try{ el.currentTime = 0; el.play(); }catch(e){} };
+  soundToggle.addEventListener('change', ()=>{
+    soundEnabled = soundToggle.checked;
+    soundLabel.textContent = soundEnabled ? '音声: ON' : '音声: OFF';
+  });
+
+  // ---- 重要：初回タップで音を“解禁”し、デコードを促す ----
+  function unlockAudioOnce(){
+    ['correctSound','wrongSound','countdownSound'].forEach(id=>{
+      const el = document.getElementById(id);
+      el.muted = true;
+      el.play().finally(()=>{
+        el.pause(); el.currentTime = 0; el.muted = false;
+      });
+    });
+  }
+  window.addEventListener('pointerdown', unlockAudioOnce, { once:true });
+
+  // ---- 安全な再生ユーティリティ（巻き戻し→再生）----
+  async function safePlay(id){
+    if(!soundEnabled) return;
+    const el = document.getElementById(id);
+    try{
+      el.pause();
+      el.currentTime = 0;
+      await el.play();
+    }catch(e){
+      // 再生できない環境（サイレントスイッチ等）は無視
+      // console.debug('audio play failed', id, e);
+    }
+  }
+
+  // 任意：canplaythrough までの読み込みを促す（初回安定化）
+  function primeAudio(){
+    ['correctSound','wrongSound','countdownSound'].forEach(id=>{
+      const el = document.getElementById(id);
+      if(el.readyState < 3){
+        el.addEventListener('canplaythrough', ()=>{}, { once:true });
+        el.load();
+      }
+    });
+  }
+  // 起動時に呼んでおく
+  document.addEventListener('DOMContentLoaded', primeAudio);
 
   const shuffle = (a)=>{ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } };
 
@@ -245,12 +271,15 @@
         while(idx<COUNTDOWN_MARKERS.length && cur+EPS>=COUNTDOWN_MARKERS[idx].time){ showLabel(COUNTDOWN_MARKERS[idx].label); idx++; }
         if(elapsed<endTime){ requestAnimationFrame(tick); }else{ overlay.style.display="none"; beginGame(); }
       };
-      if(soundEnabled){ try{ cd.currentTime=0; cd.play().catch(()=>{});}catch(e){} }
+      // ここを safePlay に変更
+      safePlay('countdownSound');
       tick();
     };
 
-    if (cd.readyState < 1) { cd.addEventListener('loadedmetadata', begin, {once:true}); setTimeout(()=>{ if(cd.readyState<1) begin(); }, 400); }
-    else begin();
+    if (cd.readyState < 1) {
+      cd.addEventListener('loadedmetadata', begin, {once:true});
+      setTimeout(()=>{ if(cd.readyState<1) begin(); }, 400);
+    } else begin();
   }
 
   /**********************
@@ -297,10 +326,12 @@
     if(paused) return;
     const correct = questions[current].answer;
     if(choice === correct){
-      score++; document.getElementById('result').textContent = "⭕ 正解！"; playOnce("correctSound");
+      score++;
+      document.getElementById('result').textContent = "⭕ 正解！";
+      safePlay("correctSound");
     }else{
       document.getElementById('result').textContent = `❌ 不正解（正解: ${labelMap[correct]}）`;
-      playOnce("wrongSound");
+      safePlay("wrongSound");
       wrongList.push({ q: questions[current].text, your: labelMap[choice]||"（無回答）", right: labelMap[correct] });
       penaltyTime += 10000; updateElapsed();
     }
@@ -327,9 +358,7 @@
   }
 
   /**********************
-   * ランキング用：完走者取得（インデックス不要版）
-   * 等価フィルタのみ。取得後にクライアントで
-   * time asc → correct desc → createdAtLocal asc で安定ソート。
+   * ランキング取得
    **********************/
   async function fetchFinishers(){
     const snap = await db.collection('scores')
@@ -373,19 +402,17 @@
   }
 
   /**********************
-   * ゲーム終了 → Firestore記録 → 即座に順位計算 & 入力欄判定
+   * ゲーム終了 → Firestore記録
    **********************/
   function endGame(){ clearInterval(elapsedTimer); showFinalReport(true); }
 
   async function showFinalReport(finished){
-    // 画面切り替え
     document.getElementById('gameArea').style.display = "none";
 
     const totalTimeSec = Number(((Date.now() - startTime - totalPausedTime + penaltyTime)/1000).toFixed(2));
     const answered = finished ? TOTAL_QUESTIONS : current;
     const percent  = ((score / (answered||1)) * 100).toFixed(1);
 
-    // 記録保存
     let myDocId = null;
     const createdAtLocal = new Date().toISOString();
     try{
@@ -402,19 +429,16 @@
       myDocId = docRef.id;
     }catch(e){ console.error(e); }
 
-    // 完走者ランキング（即時計算）
     let myRank = null, finishers = 0;
     try{
       const rows = await fetchFinishers();
       finishers = rows.length;
       myRank = rows.findIndex(r=>r.id===myDocId);
-      if(myRank>=0) myRank = myRank + 1; // 1始まり
+      if(myRank>=0) myRank = myRank + 1;
     }catch(e){ console.error(e); }
 
-    // 編集可否：TOP10に入った完走者のみ
     const canEditProfile = finished && myRank && myRank <= 10;
 
-    // 表示組み立て
     let html = `
       <div style="display:flex; gap:8px; align-items:center; justify-content:space-between; flex-wrap:wrap;">
         <h3 style="margin:0;">結果発表</h3>
@@ -434,7 +458,6 @@
       }
     }
 
-    /* コメント入力（TOP10のみ）。位置は“間違い一覧”より上 */
     if(canEditProfile && myDocId){
       html += `
         <hr>
@@ -451,7 +474,6 @@
       html += `<p style="margin:14px 0 0; color:#666;">※ 今回はTOP10外のため、名前・コメントの登録はできません。</p>`;
     }
 
-    // 間違い一覧
     if(wrongList.length){
       html += `<h4>間違った問題</h4>`;
       wrongList.forEach(x=>{
@@ -477,7 +499,6 @@
     report.innerHTML = html;
     report.style.display = "block";
 
-    // 入力イベント（送信後に即ランキング再描画）
     if(canEditProfile && myDocId){
       const btn = document.getElementById('submitBtn');
       const msg = document.getElementById('submitMsg');
@@ -491,7 +512,7 @@
           document.getElementById('nameInput').disabled = true;
           document.getElementById('commentInput').disabled = true;
           btn.style.display = "none";
-          await renderTop10(); // ★ 即時反映
+          await renderTop10();
         }catch(e){
           console.error(e);
           msg.textContent = "送信に失敗しました。時間をおいてお試しください。";
