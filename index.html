@@ -303,7 +303,7 @@
     ['correctSound','wrongSound','countdownSound','testSound','endMusic','totyuMusic','startMusic'].forEach(id=>{
       const el = document.getElementById(id);
       el.muted = !soundEnabled;
-      if(!soundEnabled){ el.pause(); el.currentTime = 0; }
+      if(!soundEnabled){ try{ el.pause(); el.currentTime = 0; }catch(_){ } }
     });
   });
 
@@ -351,19 +351,36 @@
     }
   }
 
-  // ページ復帰時の再開（モバイル対策）
-  document.addEventListener('visibilitychange', ()=>{
-    if(document.visibilityState === 'visible' && audioCtx && audioCtx.state !== 'running'){
+  /* ---- ここから：再開確実化のための追加ロジック ---- */
+  // WebAudioが止まっていたら再開
+  function ensureAudioRunning(){
+    if (!audioCtx) return;
+    if (audioCtx.state !== 'running') {
       audioCtx.resume().catch(()=>{});
     }
-  });
+  }
 
-  // gesture で解禁
+  // ページ復帰やフォーカス復帰時に再開を試みる
+  document.addEventListener('visibilitychange', ()=>{
+    if (document.visibilityState === 'visible') ensureAudioRunning();
+  });
+  window.addEventListener('pageshow', ()=>{ ensureAudioRunning(); });
+  window.addEventListener('focus',    ()=>{ ensureAudioRunning(); });
+
+  // 次のジェスチャでも毎回再開を試みる（常駐）
+  function resumeOnGesture(){ ensureAudioRunning(); }
+  window.addEventListener('pointerdown', resumeOnGesture, { passive:true });
+  window.addEventListener('touchstart',  resumeOnGesture, { passive:true });
+  window.addEventListener('click',       resumeOnGesture, { passive:true });
+  window.addEventListener('keydown',     resumeOnGesture, { passive:true });
+
+  // 初回解禁用のワンショット（残してOK）
   const onceOpts = { once:true, passive:true };
   window.addEventListener('pointerdown', unlockAndInitAudio, onceOpts);
   window.addEventListener('touchstart',  unlockAndInitAudio, onceOpts);
   window.addEventListener('click',       unlockAndInitAudio, onceOpts);
   window.addEventListener('keydown',     unlockAndInitAudio, onceOpts);
+  /* ---- 追加ロジックここまで ---- */
 
   function playBuffer(name){
     if(!soundEnabled) return;
