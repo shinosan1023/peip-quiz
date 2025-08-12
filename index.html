@@ -9,8 +9,10 @@
   h1 { margin:0; padding:16px; text-align:center; background:#fff; color:#444; }
 
   .topbar { display:flex; gap:10px; justify-content:center; align-items:center; flex-wrap:wrap; padding:10px; background:#fff; border-bottom:1px solid #eee; }
+  .right { margin-left:auto; display:flex; gap:8px; align-items:center; }
   .sound-toggle { display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; background:#fff; border:1px solid #ddd; }
-  .homeBtn { padding:8px 12px; border:none; border-radius:8px; background:#6c757d; color:#fff; cursor:pointer; }
+  .homeBtn, .testBtn { padding:8px 12px; border:none; border-radius:8px; background:#6c757d; color:#fff; cursor:pointer; }
+  .testBtn { background:#28a745; }
 
   #startArea { padding:16px; }
   #top10Box { max-width:960px; margin: 10px auto; background:#fff; border-radius:10px; padding:14px; }
@@ -73,7 +75,10 @@
       <input type="checkbox" id="soundToggle" checked />
       <span id="soundLabel">音声: ON</span>
     </label>
-    <button class="homeBtn" onclick="goHome()">スタート画面に戻る</button>
+    <div class="right">
+      <button class="testBtn" id="beepBtn" title="サウンド診断">🔊テスト音</button>
+      <button class="homeBtn" onclick="goHome()">スタート画面に戻る</button>
+    </div>
   </div>
 
   <div id="startArea">
@@ -116,7 +121,7 @@
 
   <div id="countOverlay"><span id="countText">3</span></div>
 
-  <!-- audioタグは残す（URL参照＆フォールバック用） -->
+  <!-- audioタグ（URL参照＆最終フォールバック用） -->
   <audio id="correctSound"   src="se_correct.mp3"  preload="auto" playsinline></audio>
   <audio id="wrongSound"     src="se_wrong.mp3"    preload="auto" playsinline></audio>
   <audio id="countdownSound" src="countdown.mp3"   preload="auto" playsinline></audio>
@@ -191,12 +196,12 @@
    **********************/
   let current = 0, score = 0;
   let startTime = 0, elapsedTimer = null;
-  let penaltyTime = 0; // 不正解ごとに +10s
+  let penaltyTime = 0; // 不正解ごと +10s
   let wrongList = [];
   let paused = false, pauseStartTime = 0, totalPausedTime = 0;
 
   /**********************
-   * サウンド：WebAudio + フォールバック
+   * サウンド：WebAudio（遅延初期化）+ フォールバック
    **********************/
   let soundEnabled = true;
   const soundToggle = document.getElementById('soundToggle');
@@ -207,10 +212,16 @@
   });
 
   const AudioCtx = window.AudioContext || window.webkitAudioContext;
-  const audioCtx = new AudioCtx();
+  let audioCtx = null;             // ← ユーザー操作時に生成
   const buffers = {};              // { correct, wrong, cd }
   let audioUnlocked = false;
-  let useHtmlAudioFallback = false; // ★失敗時にHTMLAudioへ退避
+  let useHtmlAudioFallback = false;
+
+  const urls = {
+    correct:  document.getElementById('correctSound').src,
+    wrong:    document.getElementById('wrongSound').src,
+    cd:       document.getElementById('countdownSound').src
+  };
 
   async function loadBuffer(name, url){
     try{
@@ -218,7 +229,7 @@
       if(!res.ok) throw new Error(`HTTP ${res.status}`);
       const buf = await res.arrayBuffer();
       buffers[name] = await new Promise((resolve, reject)=>{
-        audioCtx.decodeAudioData(buf.slice(0), b=>resolve(b), e=>reject(e));
+        audioCtx.decodeAudioData(buf, resolve, reject);
       });
     }catch(e){
       console.error("WebAudioの読み込み失敗 -> HTMLAudioにフォールバック:", name, e);
@@ -226,37 +237,47 @@
     }
   }
 
-  document.addEventListener('DOMContentLoaded', ()=>{
-    // 相対パス推奨（同一オリジンで配信）
-    loadBuffer('correct',  document.getElementById('correctSound').src).catch(()=>{ useHtmlAudioFallback=true; });
-    loadBuffer('wrong',    document.getElementById('wrongSound').src).catch(()=>{ useHtmlAudioFallback=true; });
-    loadBuffer('cd',       document.getElementById('countdownSound').src).catch(()=>{ useHtmlAudioFallback=true; });
-  });
-
-  async function unlockAudioOnce(){
+  async function unlockAndInitAudio(){
     try{
+      if(!audioCtx) audioCtx = new AudioCtx();
       if(audioCtx.state !== 'running') await audioCtx.resume();
-      audioUnlocked = true;
-      // 超短い無音を鳴らして完全解禁
+
+      // 超短い無音でデバイスを起こす
       const b = audioCtx.createBuffer(1, 1, audioCtx.sampleRate);
       const s = audioCtx.createBufferSource(); s.buffer = b; s.connect(audioCtx.destination); s.start();
-    }catch(e){}
+
+      // デコード（初回タップ中に開始）
+      await Promise.all([
+        loadBuffer('correct', urls.correct),
+        loadBuffer('wrong',   urls.wrong),
+        loadBuffer('cd',      urls.cd),
+      ]);
+
+      audioUnlocked = true;
+    }catch(e){
+      console.warn("AudioContext 初期化に失敗:", e);
+      useHtmlAudioFallback = true;
+    }
   }
-  window.addEventListener('pointerdown', unlockAudioOnce, { once:true });
+
+  // さまざまなユーザー操作で確実に解禁
+  const onceOpts = { once:true, passive:true };
+  window.addEventListener('pointerdown', unlockAndInitAudio, onceOpts);
+  window.addEventListener('touchstart',  unlockAndInitAudio, onceOpts);
+  window.addEventListener('click',       unlockAndInitAudio, onceOpts);
+  window.addEventListener('keydown',     unlockAndInitAudio, onceOpts);
 
   function playBuffer(name){
     if(!soundEnabled) return;
-    if(useHtmlAudioFallback || !audioUnlocked){
-      // HTMLAudioで再生
+    // まだ解禁/デコード前 or 失敗時 → HTMLAudio
+    if(useHtmlAudioFallback || !audioUnlocked || !audioCtx || !buffers[name]){
       const id = (name==='correct'?'correctSound': name==='wrong'?'wrongSound':'countdownSound');
       const el = document.getElementById(id);
       try{ el.pause(); el.currentTime = 0; el.play(); }catch(_){}
       return;
     }
-    const buf = buffers[name];
-    if(!buf) return; // まだ読み込み中
     const src = audioCtx.createBufferSource();
-    src.buffer = buf;
+    src.buffer = buffers[name];
     src.connect(audioCtx.destination);
     src.start(0);
   }
@@ -266,6 +287,19 @@
     if(id==='wrongSound')   return playBuffer('wrong');
     if(id==='countdownSound') return playBuffer('cd');
   }
+
+  // 🔊テスト音（WebAudioの経路確認）
+  document.getElementById('beepBtn').addEventListener('click', ()=>{
+    if(!audioCtx){ audioCtx = new AudioCtx(); }
+    if(audioCtx.state !== 'running'){ audioCtx.resume(); }
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    g.gain.value = 0.1;
+    osc.frequency.value = 880;
+    osc.connect(g).connect(audioCtx.destination);
+    osc.start();
+    setTimeout(()=>osc.stop(), 200);
+  });
 
   /**********************
    * カウントダウン
@@ -354,7 +388,7 @@
     document.getElementById('accuracy').textContent = `${rate}%`;
   }
 
-  // 二度押し防止
+  // 連打防止
   let answering = false;
 
   function checkAnswer(choice){
