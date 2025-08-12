@@ -8,18 +8,15 @@
   body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans JP", sans-serif; background:#f4f4f4; margin:0; }
   h1 { margin:0; padding:16px; text-align:center; background:#fff; color:#444; }
 
-  /* トップバー（常時） */
   .topbar { display:flex; gap:10px; justify-content:center; align-items:center; flex-wrap:wrap; padding:10px; background:#fff; border-bottom:1px solid #eee; }
   .sound-toggle { display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; background:#fff; border:1px solid #ddd; }
   .homeBtn { padding:8px 12px; border:none; border-radius:8px; background:#6c757d; color:#fff; cursor:pointer; }
 
-  /* スタート画面 */
   #startArea { padding:16px; }
   #top10Box { max-width:960px; margin: 10px auto; background:#fff; border-radius:10px; padding:14px; }
   #startButtons { text-align:center; margin:0 0 18px; }
   #startButton { background:#ff69b4; color:#fff; border:none; padding:14px 36px; font-size:18px; border-radius:12px; cursor:pointer; }
 
-  /* ゲーム情報バー */
   #gameArea { max-width:980px; margin:0 auto; }
   .info { display:flex; justify-content:center; align-items:center; gap:16px; flex-wrap:wrap; margin:10px; }
   .badge { display:inline-block; padding:4px 10px; border-radius:999px; font-weight:700; }
@@ -36,7 +33,6 @@
 
   .result { text-align:center; font-size:18px; min-height:1.6em; margin:8px 0; }
 
-  /* ランキング表 */
   table { width:100%; border-collapse:collapse; }
   th, td { padding:8px; border-bottom:1px solid #e9e9e9; }
   th { background:#fafafa; text-align:left; }
@@ -45,7 +41,6 @@
   .rankLine { margin:8px 0 0; font-size:16px; color:#555; }
   .rankEm { font-size:32px; font-weight:900; color:#d9534f; }
 
-  /* 操作ボタン（ゲーム中） */
   #controlButtons { margin-top:10px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
   .btn { padding:10px 16px; border:none; border-radius:10px; cursor:pointer; }
   .btn-primary { background:#007bff; color:#fff; }
@@ -55,20 +50,17 @@
   .btn-success { background:#28a745; color:#fff; }
   .btn-link { background:transparent; color:#007bff; text-decoration:underline; border:none; cursor:pointer; }
 
-  /* 結果 */
   #finalReport { max-width:960px; margin:16px auto; background:#fff; border-radius:10px; padding:14px; display:none; }
   #finalReport h3{ margin:0 0 10px; }
   .report-item { margin:8px 0; }
   .wrong { color:#d9534f; }
   .correct { color:#2e7d32; }
 
-  /* カウントダウン */
   #countOverlay{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.65); color:#fff; z-index:9999; font-weight:900; text-shadow:0 4px 14px rgba(0,0,0,.6); user-select:none; font-size:120px; }
   #countText { display:block; }
   @keyframes popscale { 0%{transform:scale(.7)} 60%{transform:scale(1.15)} 100%{transform:scale(1)} }
   .pop { animation: popscale .35s ease-out; }
 
-  /* フッター */
   footer { margin:18px auto 28px; max-width:960px; font-size:12px; color:#555; padding:0 12px; }
   footer .note { background:#fff; border:1px solid #eee; border-radius:8px; padding:10px; }
 </style>
@@ -76,7 +68,6 @@
 <body>
   <h1>P.E.I.P. 分類クイズ</h1>
 
-  <!-- 常時表示のトップバー -->
   <div class="topbar">
     <label class="sound-toggle" title="効果音 ON/OFF">
       <input type="checkbox" id="soundToggle" checked />
@@ -85,7 +76,6 @@
     <button class="homeBtn" onclick="goHome()">スタート画面に戻る</button>
   </div>
 
-  <!-- スタート画面 -->
   <div id="startArea">
     <div id="startButtons">
       <button id="startButton" onclick="startCountdown()">スタート</button>
@@ -97,7 +87,6 @@
     <div id="top10Box">読み込み中...</div>
   </div>
 
-  <!-- ゲーム画面 -->
   <div id="gameArea" style="display:none;">
     <div class="info">
       <span>スコア: <strong id="score">0</strong></span>
@@ -108,7 +97,6 @@
 
     <div class="question" id="question">問題を読み込み中...</div>
 
-    <!-- 回答ボタン -->
     <div class="buttons" id="answerButtons">
       <button class="btn-circle P"  onclick="checkAnswer('P')"><span class="btn-content"><span class="line1">きもち</span><span class="line2">Personality</span><span class="line3">個人</span></span></button>
       <button class="btn-circle E"  onclick="checkAnswer('E')"><span class="btn-content"><span class="line1">まわり</span><span class="line2">Environment</span><span class="line3">環境</span></span></button>
@@ -118,20 +106,17 @@
 
     <div class="result" id="result"></div>
 
-    <!-- 操作ボタン -->
     <div id="controlButtons">
       <button class="btn btn-warning" id="pauseButton" onclick="togglePause()">⏸ 一時停止</button>
       <button class="btn btn-danger"  id="quitButton"  onclick="quitGame()">⏹ やめる</button>
     </div>
   </div>
 
-  <!-- 結果表示 -->
   <div id="finalReport"></div>
 
-  <!-- カウントダウン -->
   <div id="countOverlay"><span id="countText">3</span></div>
 
-  <!-- 効果音（playsinline は残すが、実再生はWebAudio） -->
+  <!-- audioタグは残す（URL参照＆フォールバック用） -->
   <audio id="correctSound"   src="se_correct.mp3"  preload="auto" playsinline></audio>
   <audio id="wrongSound"     src="se_wrong.mp3"    preload="auto" playsinline></audio>
   <audio id="countdownSound" src="countdown.mp3"   preload="auto" playsinline></audio>
@@ -167,6 +152,7 @@
     catch{ return ""; }
   };
   const esc = (s)=>String(s||"").replace(/[&<>"'`=\/]/g,c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','/':'&#x2F;','=':'&#x3D;','`':'&#x60;' }[c]));
+  const shuffle = (a)=>{ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } };
 
   /**********************
    * 問題
@@ -205,13 +191,12 @@
    **********************/
   let current = 0, score = 0;
   let startTime = 0, elapsedTimer = null;
-  let penaltyTime = 0;      // 不正解ごとに +10s
+  let penaltyTime = 0; // 不正解ごとに +10s
   let wrongList = [];
-  // 一時停止
   let paused = false, pauseStartTime = 0, totalPausedTime = 0;
 
   /**********************
-   * サウンド：WebAudio 方式
+   * サウンド：WebAudio + フォールバック
    **********************/
   let soundEnabled = true;
   const soundToggle = document.getElementById('soundToggle');
@@ -225,24 +210,29 @@
   const audioCtx = new AudioCtx();
   const buffers = {};              // { correct, wrong, cd }
   let audioUnlocked = false;
+  let useHtmlAudioFallback = false; // ★失敗時にHTMLAudioへ退避
 
   async function loadBuffer(name, url){
-    const res = await fetch(url, { cache: "force-cache" });
-    const buf = await res.arrayBuffer();
-    // Safari互換のコールバック版 decodeAudioData
-    buffers[name] = await new Promise((resolve, reject)=>{
-      audioCtx.decodeAudioData(buf.slice(0), b=>resolve(b), e=>reject(e));
-    });
+    try{
+      const res = await fetch(url, { cache: "force-cache" });
+      if(!res.ok) throw new Error(`HTTP ${res.status}`);
+      const buf = await res.arrayBuffer();
+      buffers[name] = await new Promise((resolve, reject)=>{
+        audioCtx.decodeAudioData(buf.slice(0), b=>resolve(b), e=>reject(e));
+      });
+    }catch(e){
+      console.error("WebAudioの読み込み失敗 -> HTMLAudioにフォールバック:", name, e);
+      useHtmlAudioFallback = true;
+    }
   }
 
-  // 事前ロード（DOM準備後に開始）
   document.addEventListener('DOMContentLoaded', ()=>{
-    loadBuffer('correct',  document.getElementById('correctSound').src).catch(console.warn);
-    loadBuffer('wrong',    document.getElementById('wrongSound').src).catch(console.warn);
-    loadBuffer('cd',       document.getElementById('countdownSound').src).catch(console.warn);
+    // 相対パス推奨（同一オリジンで配信）
+    loadBuffer('correct',  document.getElementById('correctSound').src).catch(()=>{ useHtmlAudioFallback=true; });
+    loadBuffer('wrong',    document.getElementById('wrongSound').src).catch(()=>{ useHtmlAudioFallback=true; });
+    loadBuffer('cd',       document.getElementById('countdownSound').src).catch(()=>{ useHtmlAudioFallback=true; });
   });
 
-  // 初回ユーザー操作でAudioContextをresume（iOS必須）
   async function unlockAudioOnce(){
     try{
       if(audioCtx.state !== 'running') await audioCtx.resume();
@@ -255,7 +245,14 @@
   window.addEventListener('pointerdown', unlockAudioOnce, { once:true });
 
   function playBuffer(name){
-    if(!soundEnabled || !audioUnlocked) return;
+    if(!soundEnabled) return;
+    if(useHtmlAudioFallback || !audioUnlocked){
+      // HTMLAudioで再生
+      const id = (name==='correct'?'correctSound': name==='wrong'?'wrongSound':'countdownSound');
+      const el = document.getElementById(id);
+      try{ el.pause(); el.currentTime = 0; el.play(); }catch(_){}
+      return;
+    }
     const buf = buffers[name];
     if(!buf) return; // まだ読み込み中
     const src = audioCtx.createBufferSource();
@@ -264,7 +261,6 @@
     src.start(0);
   }
 
-  // 既存互換API
   function safePlay(id){
     if(id==='correctSound') return playBuffer('correct');
     if(id==='wrongSound')   return playBuffer('wrong');
@@ -284,7 +280,7 @@
 
   function startCountdown(){
     document.getElementById("startButton").disabled = true;
-    const cd = document.getElementById("countdownSound"); // 再生はWebAudio、ここでは経過参照用
+    const cd = document.getElementById("countdownSound"); // 経過参照用
     const overlay = document.getElementById("countOverlay");
     const text = document.getElementById("countText");
     overlay.style.display = "flex";
@@ -302,13 +298,13 @@
       const t0 = performance.now();
       const tick = ()=>{
         const elapsed = (performance.now()-t0)/1000;
-        const cur = cd.currentTime || elapsed; // おおよその時刻
+        const cur = cd.currentTime || elapsed;
         while(idx<COUNTDOWN_MARKERS.length && cur+EPS>=COUNTDOWN_MARKERS[idx].time){
           showLabel(COUNTDOWN_MARKERS[idx].label); idx++;
         }
         if(elapsed<endTime){ requestAnimationFrame(tick); }else{ overlay.style.display="none"; beginGame(); }
       };
-      safePlay('countdownSound'); // WebAudioで再生
+      safePlay('countdownSound');
       tick();
     };
 
@@ -362,7 +358,7 @@
   let answering = false;
 
   function checkAnswer(choice){
-    if(paused || answering) return; // 連打ガード
+    if(paused || answering) return;
     answering = true;
 
     const correct = questions[current].answer;
@@ -378,7 +374,7 @@
     }
     document.getElementById('score').textContent = score;
     current++; updateAccuracy();
-    setTimeout(()=>{ showQuestion(); answering = false; }, 900); // 次問題表示時に解除
+    setTimeout(()=>{ showQuestion(); answering = false; }, 900);
   }
 
   function togglePause(){
@@ -395,7 +391,7 @@
   function quitGame(){
     if(confirm("ゲームを終了しますか？")){
       clearInterval(elapsedTimer);
-      showFinalReport(false); // 完走ではない
+      showFinalReport(false);
     }
   }
 
@@ -577,10 +573,6 @@
     window.scrollTo({ top:0, behavior:'smooth' });
   }
 
-  /**********************
-   * 起動処理
-   **********************/
-  const shuffle = (a)=>{ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } };
   document.addEventListener('DOMContentLoaded', renderTop10);
   </script>
 
