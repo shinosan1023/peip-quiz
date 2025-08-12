@@ -66,7 +66,7 @@
   .btn-circle{
     width:132px; height:132px; border-radius:50%;
     display:flex; align-items:center; justify-content:center; cursor:pointer; color:#fff;
-    border:3px solid #fff;
+    border:3px solid #fff; /* 白い縁 */
     box-shadow:
       0 8px 18px rgba(0,0,0,.18),
       inset 0 2px 0 rgba(255,255,255,.45),
@@ -83,10 +83,11 @@
   }
   .btn-circle:active{ transform:translateY(1px) scale(.985); }
 
-  .P  { background:#e53935; }
-  .E  { background:#1e88e5; }
-  .I  { background:#ffca28; color:#2a2200; }
-  .Ph { background:#43a047; }
+  /* ご指定の鮮やか色（単色） */
+  .P  { background:#e53935; }           /* 赤 */
+  .E  { background:#1e88e5; }           /* 青 */
+  .I  { background:#ffca28; color:#2a2200; } /* 黄（黒字） */
+  .Ph { background:#43a047; }           /* 緑 */
 
   /* ランキング表など */
   table { width:100%; border-collapse:collapse; }
@@ -197,13 +198,13 @@
   <div id="countOverlay"><span id="countText">3</span></div>
 
   <!-- HTMLAudio（フォールバックやロード元として使用） -->
-  <audio id="correctSound"   src="se_correct.mp3"  preload="auto" playsinline></audio>
-  <audio id="wrongSound"     src="se_wrong.mp3"    preload="auto" playsinline></audio>
-  <audio id="countdownSound" src="countdown.mp3"   preload="auto" playsinline></audio>
-  <audio id="testSound"      src="test_sound.mp3"  preload="auto" playsinline></audio>
-  <!-- 追加：完走時／途中終了時のBGM -->
-  <audio id="endMusic"       src="end_music.mp3"   preload="auto" playsinline></audio>
-  <audio id="quitMusic"      src="totyu.mp3"       preload="auto" playsinline></audio>
+  <audio id="correctSound"   src="se_correct.mp3"   preload="auto" playsinline></audio>
+  <audio id="wrongSound"     src="se_wrong.mp3"     preload="auto" playsinline></audio>
+  <audio id="countdownSound" src="countdown.mp3"    preload="auto" playsinline></audio>
+  <audio id="testSound"      src="test_sound.mp3"   preload="auto" playsinline></audio>
+  <audio id="endMusic"       src="end_music.mp3"    preload="auto" playsinline></audio>
+  <audio id="quitMusic"      src="totyu.mp3"        preload="auto" playsinline></audio>
+  <audio id="startSound"     src="start.mp3"        preload="auto" playsinline></audio>
 
   <!-- Firebase（Firestore） -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -291,25 +292,19 @@
     cd:       document.getElementById('countdownSound').src,
     test:     document.getElementById('testSound').src,
     end:      document.getElementById('endMusic').src,
-    quit:     document.getElementById('quitMusic').src
+    quit:     document.getElementById('quitMusic').src,
+    start:    document.getElementById('startSound').src
   };
-
-  function stopAllHtmlAudio(){
-    ['correctSound','wrongSound','countdownSound','testSound','endMusic','quitMusic'].forEach(id=>{
-      const el = document.getElementById(id);
-      try{ el.pause(); el.currentTime = 0; }catch(_){}
-    });
-  }
 
   soundToggle.addEventListener('change', ()=>{
     soundEnabled = soundToggle.checked;
     soundLabel.textContent = soundEnabled ? '音声: ON' : '音声: OFF';
     if(masterGain) masterGain.gain.value = soundEnabled ? 1 : 0;
-    // HTMLAudio 側も同期（フォールバック/長尺BGM用）
-    ['correctSound','wrongSound','countdownSound','testSound','endMusic','quitMusic'].forEach(id=>{
+    // HTMLAudio 側も同期（フォールバック用）
+    ['correctSound','wrongSound','countdownSound','testSound','endMusic','quitMusic','startSound'].forEach(id=>{
       const el = document.getElementById(id);
       el.muted = !soundEnabled;
-      if(!soundEnabled){ try{ el.pause(); el.currentTime = 0; }catch(_){} }
+      if(!soundEnabled){ el.pause(); el.currentTime = 0; }
     });
   });
 
@@ -347,7 +342,8 @@
         loadBuffer('cd',      urls.cd),
         loadBuffer('test',    urls.test),
         loadBuffer('end',     urls.end),
-        loadBuffer('quit',    urls.quit)
+        loadBuffer('quit',    urls.quit),
+        loadBuffer('start',   urls.start),
       ]);
       audioUnlocked = true;
     }catch(e){
@@ -361,40 +357,29 @@
   window.addEventListener('click',       unlockAndInitAudio, onceOpts);
   window.addEventListener('keydown',     unlockAndInitAudio, onceOpts);
 
-  // 復帰時の自動リカバリ
-  async function resumeAudioIfNeeded() {
-    try {
-      if (useHtmlAudioFallback) return;
-      if (audioCtx && audioCtx.state === 'suspended') {
+  // タブ復帰・履歴戻りでAudioContextが止まる対策
+  async function resumeAudioIfNeeded(){
+    try{
+      if(audioCtx && audioCtx.state !== 'running'){
         await audioCtx.resume();
       }
-      if (!audioCtx || audioCtx.state === 'closed') {
-        audioCtx = null; masterGain = null; audioUnlocked = false;
-        await unlockAndInitAudio();
-      }
-      if (masterGain) masterGain.gain.value = soundEnabled ? 1 : 0;
-    } catch (e) {
-      console.warn('resumeAudioIfNeeded failed:', e);
-      showTapToResumeHint();
-    }
+    }catch(e){}
   }
-  function showTapToResumeHint() {
-    if (soundEnabled) {
-      soundLabel.textContent = '音声: ON（タップで再開）';
-    }
+  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') resumeAudioIfNeeded(); });
+  window.addEventListener('pageshow', ()=> resumeAudioIfNeeded());
+
+  // 1曲モノのBGMは他の音とバッティングしないよう停止
+  function stopOneShots(){
+    ['endMusic','quitMusic','startSound'].forEach(id=>{
+      const el = document.getElementById(id);
+      try{ el.pause(); el.currentTime = 0; }catch(_){}
+    });
   }
-  document.addEventListener('visibilitychange', ()=>{
-    if (document.visibilityState === 'visible') resumeAudioIfNeeded();
-  });
-  window.addEventListener('pageshow', (e)=>{
-    if (e.persisted) resumeAudioIfNeeded();
-  });
-  window.addEventListener('focus', resumeAudioIfNeeded);
 
   function playBuffer(name){
     if(!soundEnabled) return;
-    // 長尺BGMの二重再生を避けるため、再生前にHTMLAudioは止める
-    stopAllHtmlAudio();
+    // BGM系は開始前に止める
+    if(name==='end' || name==='quit' || name==='start'){ stopOneShots(); }
 
     if(useHtmlAudioFallback || !audioUnlocked || !audioCtx || !buffers[name]){
       const id = name==='correct'?'correctSound'
@@ -402,17 +387,10 @@
               : name==='cd'     ?'countdownSound'
               : name==='test'   ?'testSound'
               : name==='end'    ?'endMusic'
-              :                   'quitMusic';
+              : name==='quit'   ?'quitMusic'
+              : 'startSound';
       const el = document.getElementById(id);
-      try{
-        el.pause(); el.currentTime = 0;
-        const p = el.play();
-        if (p && typeof p.then === 'function') {
-          p.catch(()=> showTapToResumeHint());
-        }
-      }catch(_){
-        showTapToResumeHint();
-      }
+      try{ el.pause(); el.currentTime = 0; el.play(); }catch(_){}
       return;
     }
     const src = audioCtx.createBufferSource();
@@ -428,12 +406,11 @@
     if(id==='testSound')    return playBuffer('test');
     if(id==='endMusic')     return playBuffer('end');
     if(id==='quitMusic')    return playBuffer('quit');
+    if(id==='startSound')   return playBuffer('start');
   }
 
   // テスト音（mp3を再生）
-  document.getElementById('beepBtn').addEventListener('click', ()=>{
-    safePlay('testSound');
-  });
+  document.getElementById('beepBtn').addEventListener('click', ()=>{ safePlay('testSound'); });
 
   /**********************
    * カウントダウン
@@ -460,7 +437,6 @@
     };
 
     const begin = ()=>{
-      resumeAudioIfNeeded().catch(()=>{});
       const t0 = performance.now();
       const tick = ()=>{
         const elapsed = (performance.now()-t0)/1000;
@@ -554,7 +530,9 @@
   function quitGame(){
     if(confirm("ゲームを終了しますか？")){
       clearInterval(elapsedTimer);
-      showFinalReport(false); // 途中終了
+      // 途中終了のサウンド
+      safePlay('quitMusic');
+      showFinalReport(false);
     }
   }
 
@@ -608,13 +586,6 @@
 
   async function showFinalReport(finished){
     document.getElementById('gameArea').style.display = "none";
-
-    // まずBGM再生（完走=祝BGM / 途中=途中BGM）
-    if (finished) {
-      safePlay('endMusic');
-    } else {
-      safePlay('quitMusic');
-    }
 
     const totalTimeSec = Number(((Date.now() - startTime - totalPausedTime + penaltyTime)/1000).toFixed(2));
     const answered = finished ? TOTAL_QUESTIONS : current;
@@ -706,6 +677,11 @@
     report.innerHTML = html;
     report.style.display = "block";
 
+    // 完走/途中終了 サウンド
+    if (finished) {
+      safePlay('endMusic');
+    } // 途中終了のときは quitGame() 内で再生済み
+
     if(canEditProfile && myDocId){
       const btn = document.getElementById('submitBtn');
       const msg = document.getElementById('submitMsg');
@@ -730,13 +706,13 @@
   }
 
   function goHome(){
-    // 画面遷移時にBGM/SEを止める
-    stopAllHtmlAudio();
     document.getElementById('countOverlay').style.display = "none";
     document.getElementById('finalReport').style.display = "none";
     document.getElementById('gameArea').style.display = "none";
     document.getElementById('startArea').style.display = "block";
     document.getElementById('startButton').disabled = false;
+    // ホームに戻ったら念のためBGMを止める
+    stopOneShots();
   }
   async function goHomeAndShowRank(){
     goHome();
@@ -747,7 +723,11 @@
   /**********************
    * 起動
    **********************/
-  document.addEventListener('DOMContentLoaded', renderTop10);
+  document.addEventListener('DOMContentLoaded', () => {
+    renderTop10();
+    // 最初の画面表示から 0.2秒後に start.mp3
+    setTimeout(() => { safePlay('startSound'); }, 200);
+  });
   </script>
 
   <footer>
