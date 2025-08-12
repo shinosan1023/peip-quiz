@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <title>P.E.I.P. 分類クイズ</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preload" as="image" href="./772063.jpg?v=1">
 <style>
   :root{
     --text:#2f3a33;
@@ -11,20 +12,18 @@
     --ring:#00b89433;
     --brand:#ff7f50;
   }
-  /* ベース */
   body{
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans JP", sans-serif;
     margin:0; color:var(--text); overflow-x:hidden;
     background:#eaf6ed;
   }
-  /* 背景＝森のイラスト（772063.jpg） */
+  /* 背景画像（同階層の 772063.jpg） */
   body::before{
     content:"";
     position:fixed; inset:0; z-index:-2; pointer-events:none;
-    background:url("772063.jpg") center/cover no-repeat fixed;
+    background:url("./772063.jpg?v=1") center/cover no-repeat fixed;
     filter:saturate(1.05) brightness(.98);
   }
-  /* 薄いベールで可読性UP */
   body::after{
     content:"";
     position:fixed; inset:0; z-index:-1; pointer-events:none;
@@ -34,36 +33,30 @@
   h1 { margin:0; padding:16px; text-align:center; background:#fff; color:var(--text);
        box-shadow:0 6px 20px rgba(0,0,0,.06); }
 
-  /* トップバー（テスト＝緑／戻る＝灰） */
   .topbar { display:flex; gap:12px; justify-content:center; align-items:center; flex-wrap:wrap; padding:10px; background:transparent; }
   .sound-toggle { display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; background:var(--card); border:1px solid #eaeaea; box-shadow:0 6px 16px rgba(0,0,0,.05); }
   .homeBtn { padding:8px 12px; border:none; border-radius:8px; background:#6c757d; color:#fff; cursor:pointer; }
   .testBtn { padding:8px 12px; border:none; border-radius:8px; background:#28a745; color:#fff; cursor:pointer; }
   .right { display:flex; gap:8px; align-items:center; }
 
-  /* スタート画面 */
   #startArea { padding:16px; }
   #top10Box { max-width:960px; margin: 10px auto; background:var(--card); border-radius:10px; padding:14px; border:1px solid #f2f2f2; box-shadow:0 12px 28px rgba(0,0,0,.08); }
   #startButtons { text-align:center; margin:0 0 18px; }
   #startButton { background:#ff7f50; color:#fff; border:none; padding:14px 36px; font-size:18px; border-radius:12px; cursor:pointer; box-shadow:0 8px 18px rgba(255,127,80,.35); }
 
-  /* 情報バー */
   #gameArea { max-width:980px; margin:0 auto; }
   .info { display:flex; justify-content:center; align-items:center; gap:16px; flex-wrap:wrap; margin:10px; }
   .badge { display:inline-block; padding:4px 10px; border-radius:999px; font-weight:700; }
   .elapsed-badge { background:#e9fff7; border:2px solid #24c9a5; color:#0b6d85; }
   .acc-badge { background:#fff9e8; border:2px solid #f6b14f; color:#7a5600; }
 
-  /* 問題文：太字＋必ず「」表示（JS側でも対応） */
   .question { text-align:center; font-size:24px; font-weight:800; margin:12px; text-shadow:0 1px 0 rgba(255,255,255,.35); }
 
-  /* 回答ボタン（鮮やか・白縁・ほんのり立体・丸） */
   .buttons { display:flex; flex-wrap:wrap; justify-content:center; gap:14px; margin:12px; }
   .btn-circle{
     width:132px; height:132px; border-radius:50%;
     display:flex; align-items:center; justify-content:center; cursor:pointer; color:#fff;
-    border:3px solid #fff; /* 白い縁 */
-    /* 立体感：外側の影＋上面のハイライト（inset） */
+    border:3px solid #fff; 
     box-shadow:
       0 8px 18px rgba(0,0,0,.18),
       inset 0 2px 0 rgba(255,255,255,.45),
@@ -80,15 +73,13 @@
   }
   .btn-circle:active{ transform:translateY(1px) scale(.985); }
 
-  /* ご指定の鮮やか色 */
-  .P  { background:#e53935; }   /* 赤 */
-  .E  { background:#1e88e5; }   /* 青 */
-  .I  { background:#ffca28; color:#2a2200; } /* 黄（黒字） */
-  .Ph { background:#43a047; }   /* 緑 */
+  .P  { background:#e53935; }
+  .E  { background:#1e88e5; }
+  .I  { background:#ffca28; color:#2a2200; }
+  .Ph { background:#43a047; }
 
   .result { text-align:center; font-size:18px; min-height:1.6em; margin:8px 0; }
 
-  /* ランキング表など */
   table { width:100%; border-collapse:collapse; }
   th, td { padding:8px; border-bottom:1px solid #e9e9e9; }
   th { background:#fafafa; text-align:left; }
@@ -97,7 +88,6 @@
   .rankLine { margin:8px 0 0; font-size:16px; color:#555; }
   .rankEm { font-size:32px; font-weight:900; color:#d9534f; }
 
-  /* 操作ボタン */
   #controlButtons { margin-top:10px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
   .btn { padding:10px 16px; border:none; border-radius:10px; cursor:pointer; }
   .btn-primary { background:#007bff; color:#fff; }
@@ -107,24 +97,20 @@
   .btn-success { background:#28a745; color:#fff; }
   .btn-link { background:transparent; color:#007bff; text-decoration:underline; border:none; cursor:pointer; }
 
-  /* 結果 */
   #finalReport { max-width:960px; margin:16px auto; background:var(--card); border-radius:10px; padding:14px; display:none; border:1px solid #f2f2f2; box-shadow:0 12px 28px rgba(0,0,0,.08); }
   #finalReport h3{ margin:0 0 10px; }
   .report-item { margin:8px 0; }
   .wrong { color:#d9534f; }
   .correct { color:#2e7d32; }
 
-  /* カウントダウン */
   #countOverlay{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:linear-gradient(180deg, rgba(0,0,0,.55), rgba(0,0,0,.45)); color:#fff; z-index:9999; font-weight:900; user-select:none; font-size:120px; }
   #countText { display:block; text-shadow:0 8px 30px rgba(0,0,0,.6); }
   @keyframes popscale { 0%{transform:scale(.7)} 60%{transform:scale(1.15)} 100%{transform:scale(1)} }
   .pop { animation: popscale .35s ease-out; }
 
-  /* フッター */
   footer { margin:18px auto 28px; max-width:960px; font-size:12px; color:#555; padding:0 12px; }
   footer .note { background:var(--card); border:1px solid #eee; border-radius:8px; padding:10px; box-shadow:0 6px 16px rgba(0,0,0,.06); }
 
-  /* アクセシビリティ */
   button:focus-visible, input:focus-visible{ outline:2px solid var(--ring); outline-offset:2px; border-radius:10px; }
 
   @media (prefers-reduced-motion: reduce){
@@ -136,7 +122,6 @@
 <body>
   <h1>P.E.I.P. 分類クイズ</h1>
 
-  <!-- トップバー -->
   <div class="topbar">
     <label class="sound-toggle" title="効果音 ON/OFF">
       <input type="checkbox" id="soundToggle" checked />
@@ -148,7 +133,6 @@
     </div>
   </div>
 
-  <!-- スタート画面 -->
   <div id="startArea">
     <div id="startButtons">
       <button id="startButton" onclick="startCountdown()">スタート</button>
@@ -160,7 +144,6 @@
     <div id="top10Box">読み込み中...</div>
   </div>
 
-  <!-- ゲーム画面 -->
   <div id="gameArea" style="display:none;">
     <div class="info">
       <span>スコア: <strong id="score">0</strong></span>
@@ -171,7 +154,6 @@
 
     <div class="question" id="question">「問題を読み込み中...」</div>
 
-    <!-- 回答ボタン -->
     <div class="buttons" id="answerButtons">
       <button class="btn-circle P"  onclick="checkAnswer('P')"><span class="btn-content"><span class="line1">きもち</span><span class="line2">Personality</span><span class="line3">個人</span></span></button>
       <button class="btn-circle E"  onclick="checkAnswer('E')"><span class="btn-content"><span class="line1">まわり</span><span class="line2">Environment</span><span class="line3">環境</span></span></button>
@@ -181,25 +163,22 @@
 
     <div class="result" id="result"></div>
 
-    <!-- 操作ボタン -->
     <div id="controlButtons">
       <button class="btn btn-warning" id="pauseButton" onclick="togglePause()">⏸ 一時停止</button>
       <button class="btn btn-danger"  id="quitButton"  onclick="quitGame()">⏹ やめる</button>
     </div>
   </div>
 
-  <!-- 結果表示 -->
   <div id="finalReport"></div>
 
-  <!-- カウントダウン -->
   <div id="countOverlay"><span id="countText">3</span></div>
 
-  <!-- audioタグ（URL参照＆フォールバック用） -->
+  <!-- HTMLAudio（iOS消音優先のため残す） -->
   <audio id="correctSound"   src="se_correct.mp3"  preload="auto" playsinline></audio>
   <audio id="wrongSound"     src="se_wrong.mp3"    preload="auto" playsinline></audio>
   <audio id="countdownSound" src="countdown.mp3"   preload="auto" playsinline></audio>
 
-  <!-- Firebase（Firestore） -->
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
@@ -255,18 +234,22 @@
   ];
   const TOTAL_QUESTIONS = questions.length;
 
-  /* ゲーム状態 */
+  /* 状態 */
   let current = 0, score = 0;
   let startTime = 0, elapsedTimer = null;
   let penaltyTime = 0, wrongList = [];
   let paused = false, pauseStartTime = 0, totalPausedTime = 0;
 
-  /* サウンド：WebAudio + マスターゲイン + フォールバック */
+  /* サウンド：iOSはHTMLAudio優先（消音スイッチに追従）/ その他はWebAudio */
+  const isIOS = /iP(hone|ad|od)/i.test(navigator.userAgent) || 
+                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); // iPadOS判定
+  const RESPECT_IOS_SILENT = true;
+
   let soundEnabled = true;
   const soundToggle = document.getElementById('soundToggle');
   const soundLabel  = document.getElementById('soundLabel');
   const AudioCtx = window.AudioContext || window.webkitAudioContext;
-  let audioCtx = null, masterGain = null, audioUnlocked = false, useHtmlAudioFallback = false;
+  let audioCtx = null, masterGain = null, audioUnlocked = false, useHtmlAudioFallback = isIOS && RESPECT_IOS_SILENT;
   const buffers = {};
   const urls = {
     correct:  document.getElementById('correctSound').src,
@@ -274,10 +257,18 @@
     cd:       document.getElementById('countdownSound').src
   };
 
+  if (useHtmlAudioFallback) {
+    // 表示に注記
+    soundLabel.textContent = '音声: ON（iOSは消音優先）';
+  }
+
   soundToggle.addEventListener('change', ()=>{
     soundEnabled = soundToggle.checked;
-    soundLabel.textContent = soundEnabled ? '音声: ON' : '音声: OFF';
+    soundLabel.textContent = soundEnabled
+      ? (useHtmlAudioFallback ? '音声: ON（iOSは消音優先）' : '音声: ON')
+      : '音声: OFF';
     if(masterGain) masterGain.gain.value = soundEnabled ? 1 : 0;
+    // HTMLAudio も同期
     ['correctSound','wrongSound','countdownSound'].forEach(id=>{
       const el = document.getElementById(id);
       el.muted = !soundEnabled;
@@ -286,27 +277,23 @@
   });
 
   async function loadBuffer(name, url){
-    try{
-      const res = await fetch(url, { cache: "force-cache" });
-      if(!res.ok) throw new Error(`HTTP ${res.status}`);
-      const buf = await res.arrayBuffer();
-      buffers[name] = await new Promise((resolve, reject)=>{
-        (audioCtx.decodeAudioData.length === 1)
-          ? audioCtx.decodeAudioData(buf).then(resolve, reject)
-          : audioCtx.decodeAudioData(buf, resolve, reject);
-      });
-    }catch(e){
-      console.error("WebAudio失敗 -> HTMLAudioへ:", name, e);
-      useHtmlAudioFallback = true;
-    }
+    const res = await fetch(url, { cache: "force-cache" });
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const buf = await res.arrayBuffer();
+    buffers[name] = await new Promise((resolve, reject)=>{
+      (audioCtx.decodeAudioData.length === 1)
+        ? audioCtx.decodeAudioData(buf).then(resolve, reject)
+        : audioCtx.decodeAudioData(buf, resolve, reject);
+    });
   }
 
   async function unlockAndInitAudio(){
+    if (useHtmlAudioFallback) return; // iOSはHTMLAudioのみ
     try{
       if(!audioCtx) audioCtx = new AudioCtx();
       if(!masterGain){
         masterGain = audioCtx.createGain();
-        masterGain.gain.value = 1;
+        masterGain.gain.value = soundEnabled ? 1 : 0;
         masterGain.connect(audioCtx.destination);
       }
       if(audioCtx.state !== 'running') await audioCtx.resume();
@@ -315,10 +302,12 @@
       await Promise.all([ loadBuffer('correct', urls.correct), loadBuffer('wrong', urls.wrong), loadBuffer('cd', urls.cd) ]);
       audioUnlocked = true;
     }catch(e){
-      console.warn("AudioContext 初期化失敗:", e);
+      console.warn("WebAudio初期化失敗。HTMLAudioへフォールバックします:", e);
       useHtmlAudioFallback = true;
+      soundLabel.textContent = soundEnabled ? '音声: ON（iOSは消音優先）' : '音声: OFF';
     }
   }
+
   const onceOpts = { once:true, passive:true };
   window.addEventListener('pointerdown', unlockAndInitAudio, onceOpts);
   window.addEventListener('touchstart',  unlockAndInitAudio, onceOpts);
@@ -338,26 +327,33 @@
     src.connect(masterGain);
     src.start(0);
   }
+
   function safePlay(id){
     if(id==='correctSound') return playBuffer('correct');
     if(id==='wrongSound')   return playBuffer('wrong');
     if(id==='countdownSound') return playBuffer('cd');
   }
 
-  // テスト音
+  // テスト音（WebAudio or HTMLAudioで擬似）
   document.getElementById('beepBtn').addEventListener('click', ()=>{
-    if(!audioCtx) audioCtx = new AudioCtx();
-    if(!masterGain){ masterGain = audioCtx.createGain(); masterGain.gain.value = soundEnabled?1:0; masterGain.connect(audioCtx.destination); }
-    if(audioCtx.state !== 'running'){ audioCtx.resume(); }
     if(!soundEnabled) return;
-    const osc = audioCtx.createOscillator();
-    const g = audioCtx.createGain(); g.gain.value = 0.1;
-    osc.frequency.value = 880; osc.connect(g).connect(masterGain); osc.start(); setTimeout(()=>osc.stop(), 200);
+    if(useHtmlAudioFallback){
+      const el = document.getElementById('correctSound');
+      try{ el.pause(); el.currentTime = 0; el.play(); }catch(_){}
+    }else{
+      if(!audioCtx) audioCtx = new AudioCtx();
+      if(!masterGain){ masterGain = audioCtx.createGain(); masterGain.gain.value = 1; masterGain.connect(audioCtx.destination); }
+      if(audioCtx.state !== 'running'){ audioCtx.resume(); }
+      const osc = audioCtx.createOscillator();
+      const g = audioCtx.createGain(); g.gain.value = 0.12;
+      osc.frequency.value = 880; osc.connect(g).connect(masterGain); osc.start(); setTimeout(()=>osc.stop(), 180);
+    }
   });
 
   /* カウントダウン */
   const COUNTDOWN_MARKERS = [{time:0.00,label:"3"},{time:0.90,label:"2"},{time:1.80,label:"1"},{time:2.65,label:"スタート！"}];
   const HOLD_AFTER_START = 1.80, EPS = 0.015;
+
   function startCountdown(){
     document.getElementById("startButton").disabled = true;
     const cd = document.getElementById("countdownSound");
@@ -403,18 +399,20 @@
     elapsedTimer = setInterval(updateElapsed, 50);
     showQuestion();
   }
+
   function updateElapsed(){
     const sec = (Date.now() - startTime - totalPausedTime + penaltyTime) / 1000;
     document.getElementById('elapsed').textContent = sec.toFixed(2);
   }
+
   function showQuestion(){
     if(current >= TOTAL_QUESTIONS){ endGame(); return; }
-    // 必ず「」で表示
     const t = questions[current].text;
     document.getElementById('question').textContent = `「${t}」`;
     document.getElementById('questionNumber').textContent = current + 1;
     document.getElementById('result').textContent = "";
   }
+
   function updateAccuracy(){
     const answered = Math.max(current, 1);
     const rate = ((score / answered) * 100).toFixed(1);
@@ -475,6 +473,7 @@
     });
     return list;
   }
+
   async function renderTop10(){
     const box=document.getElementById('top10Box');
     box.textContent="読み込み中...";
