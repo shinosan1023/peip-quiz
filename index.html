@@ -294,7 +294,6 @@
     soundEnabled = soundToggle.checked;
     soundLabel.textContent = soundEnabled ? '音声: ON' : '音声: OFF';
     if(masterGain) masterGain.gain.value = soundEnabled ? 1 : 0;
-    // HTMLAudio 側も同期（フォールバック用）
     ['correctSound','wrongSound','countdownSound','testSound'].forEach(id=>{
       const el = document.getElementById(id);
       el.muted = !soundEnabled;
@@ -348,6 +347,36 @@
   window.addEventListener('click',       unlockAndInitAudio, onceOpts);
   window.addEventListener('keydown',     unlockAndInitAudio, onceOpts);
 
+  // 復帰時の自動リカバリ
+  async function resumeAudioIfNeeded() {
+    try {
+      if (useHtmlAudioFallback) return;
+      if (audioCtx && audioCtx.state === 'suspended') {
+        await audioCtx.resume();
+      }
+      if (!audioCtx || audioCtx.state === 'closed') {
+        audioCtx = null; masterGain = null; audioUnlocked = false;
+        await unlockAndInitAudio();
+      }
+      if (masterGain) masterGain.gain.value = soundEnabled ? 1 : 0;
+    } catch (e) {
+      console.warn('resumeAudioIfNeeded failed:', e);
+      showTapToResumeHint();
+    }
+  }
+  function showTapToResumeHint() {
+    if (soundEnabled) {
+      soundLabel.textContent = '音声: ON（タップで再開）';
+    }
+  }
+  document.addEventListener('visibilitychange', ()=>{
+    if (document.visibilityState === 'visible') resumeAudioIfNeeded();
+  });
+  window.addEventListener('pageshow', (e)=>{
+    if (e.persisted) resumeAudioIfNeeded();
+  });
+  window.addEventListener('focus', resumeAudioIfNeeded);
+
   function playBuffer(name){
     if(!soundEnabled) return;
     if(useHtmlAudioFallback || !audioUnlocked || !audioCtx || !buffers[name]){
@@ -356,7 +385,15 @@
               : name==='cd'     ?'countdownSound'
               : 'testSound';
       const el = document.getElementById(id);
-      try{ el.pause(); el.currentTime = 0; el.play(); }catch(_){}
+      try{
+        el.pause(); el.currentTime = 0;
+        const p = el.play();
+        if (p && typeof p.then === 'function') {
+          p.catch(()=> showTapToResumeHint());
+        }
+      }catch(_){
+        showTapToResumeHint();
+      }
       return;
     }
     const src = audioCtx.createBufferSource();
@@ -365,6 +402,8 @@
     src.start(0);
   }
   function safePlay(id){
+    // 再生前に保険
+    resumeAudioIfNeeded().catch(()=>{});
     if(id==='correctSound') return playBuffer('correct');
     if(id==='wrongSound')   return playBuffer('wrong');
     if(id==='countdownSound') return playBuffer('cd');
@@ -401,6 +440,8 @@
     };
 
     const begin = ()=>{
+      // カウント開始直前にも保険
+      resumeAudioIfNeeded().catch(()=>{});
       const t0 = performance.now();
       const tick = ()=>{
         const elapsed = (performance.now()-t0)/1000;
