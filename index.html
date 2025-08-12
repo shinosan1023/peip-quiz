@@ -154,7 +154,7 @@
     <div id="startButtons">
       <button id="startButton" onclick="startCountdown()">スタート</button>
     </div>
-    <!-- 明確な注意文（赤太字） -->
+    <!-- 注意文（赤太字） -->
     <div class="sound-note">※ <b>静かに実施したい場合は、この画面の「音声」を必ずOFFにしてください。</b></div>
 
     <div style="text-align:center; margin:8px 0;">
@@ -174,7 +174,6 @@
     </div>
 
     <div class="question" id="question">「問題を読み込み中...」</div>
-    <!-- 判定結果は問題の直下に表示 -->
     <div class="result" id="result"></div>
 
     <!-- 回答ボタン -->
@@ -198,13 +197,13 @@
   <div id="countOverlay"><span id="countText">3</span></div>
 
   <!-- HTMLAudio（フォールバックやロード元として使用） -->
-  <audio id="correctSound"   src="se_correct.mp3"   preload="auto" playsinline></audio>
-  <audio id="wrongSound"     src="se_wrong.mp3"     preload="auto" playsinline></audio>
-  <audio id="countdownSound" src="countdown.mp3"    preload="auto" playsinline></audio>
-  <audio id="testSound"      src="test_sound.mp3"   preload="auto" playsinline></audio>
-  <audio id="endMusic"       src="end_music.mp3"    preload="auto" playsinline></audio>
-  <audio id="quitMusic"      src="totyu.mp3"        preload="auto" playsinline></audio>
-  <audio id="startSound"     src="start.mp3"        preload="auto" playsinline></audio>
+  <audio id="correctSound"   src="se_correct.mp3"  preload="auto" playsinline></audio>
+  <audio id="wrongSound"     src="se_wrong.mp3"    preload="auto" playsinline></audio>
+  <audio id="countdownSound" src="countdown.mp3"   preload="auto" playsinline></audio>
+  <audio id="testSound"      src="test_sound.mp3"  preload="auto" playsinline></audio>
+  <audio id="endMusic"       src="end_music.mp3"   preload="auto" playsinline></audio>
+  <audio id="totyuMusic"     src="totyu.mp3"       preload="auto" playsinline></audio>
+  <audio id="startMusic"     src="start.mp3"       preload="auto" playsinline></audio>
 
   <!-- Firebase（Firestore） -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -278,7 +277,7 @@
 
   /**********************
    * サウンド：WebAudio + フォールバック
-   * 端末の消音モードには依存せず、画面のトグルのみで制御します
+   * 端末の消音モードには依存せず、画面のトグルのみで制御
    **********************/
   let soundEnabled = true;
   const soundToggle = document.getElementById('soundToggle');
@@ -292,16 +291,16 @@
     cd:       document.getElementById('countdownSound').src,
     test:     document.getElementById('testSound').src,
     end:      document.getElementById('endMusic').src,
-    quit:     document.getElementById('quitMusic').src,
-    start:    document.getElementById('startSound').src
+    totyu:    document.getElementById('totyuMusic').src,
+    startS:   document.getElementById('startMusic').src
   };
 
   soundToggle.addEventListener('change', ()=>{
     soundEnabled = soundToggle.checked;
     soundLabel.textContent = soundEnabled ? '音声: ON' : '音声: OFF';
     if(masterGain) masterGain.gain.value = soundEnabled ? 1 : 0;
-    // HTMLAudio 側も同期（フォールバック用）
-    ['correctSound','wrongSound','countdownSound','testSound','endMusic','quitMusic','startSound'].forEach(id=>{
+    // HTMLAudio 側も同期（フォールバック/一部長尺用）
+    ['correctSound','wrongSound','countdownSound','testSound','endMusic','totyuMusic','startMusic'].forEach(id=>{
       const el = document.getElementById(id);
       el.muted = !soundEnabled;
       if(!soundEnabled){ el.pause(); el.currentTime = 0; }
@@ -333,7 +332,7 @@
         masterGain.connect(audioCtx.destination);
       }
       if(audioCtx.state !== 'running') await audioCtx.resume();
-      // 短い無音を鳴らして解禁
+      // 短い無音で解禁
       const b = audioCtx.createBuffer(1, 1, audioCtx.sampleRate);
       const s = audioCtx.createBufferSource(); s.buffer = b; s.connect(masterGain); s.start();
       await Promise.all([
@@ -342,8 +341,8 @@
         loadBuffer('cd',      urls.cd),
         loadBuffer('test',    urls.test),
         loadBuffer('end',     urls.end),
-        loadBuffer('quit',    urls.quit),
-        loadBuffer('start',   urls.start),
+        loadBuffer('totyu',   urls.totyu),
+        loadBuffer('startS',  urls.startS),
       ]);
       audioUnlocked = true;
     }catch(e){
@@ -351,44 +350,31 @@
       useHtmlAudioFallback = true;
     }
   }
+
+  // ページ復帰時の再開（モバイル対策）
+  document.addEventListener('visibilitychange', ()=>{
+    if(document.visibilityState === 'visible' && audioCtx && audioCtx.state !== 'running'){
+      audioCtx.resume().catch(()=>{});
+    }
+  });
+
+  // gesture で解禁
   const onceOpts = { once:true, passive:true };
   window.addEventListener('pointerdown', unlockAndInitAudio, onceOpts);
   window.addEventListener('touchstart',  unlockAndInitAudio, onceOpts);
   window.addEventListener('click',       unlockAndInitAudio, onceOpts);
   window.addEventListener('keydown',     unlockAndInitAudio, onceOpts);
 
-  // タブ復帰・履歴戻りでAudioContextが止まる対策
-  async function resumeAudioIfNeeded(){
-    try{
-      if(audioCtx && audioCtx.state !== 'running'){
-        await audioCtx.resume();
-      }
-    }catch(e){}
-  }
-  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') resumeAudioIfNeeded(); });
-  window.addEventListener('pageshow', ()=> resumeAudioIfNeeded());
-
-  // 1曲モノのBGMは他の音とバッティングしないよう停止
-  function stopOneShots(){
-    ['endMusic','quitMusic','startSound'].forEach(id=>{
-      const el = document.getElementById(id);
-      try{ el.pause(); el.currentTime = 0; }catch(_){}
-    });
-  }
-
   function playBuffer(name){
     if(!soundEnabled) return;
-    // BGM系は開始前に止める
-    if(name==='end' || name==='quit' || name==='start'){ stopOneShots(); }
-
     if(useHtmlAudioFallback || !audioUnlocked || !audioCtx || !buffers[name]){
-      const id = name==='correct'?'correctSound'
-              : name==='wrong'  ?'wrongSound'
-              : name==='cd'     ?'countdownSound'
-              : name==='test'   ?'testSound'
-              : name==='end'    ?'endMusic'
-              : name==='quit'   ?'quitMusic'
-              : 'startSound';
+      const id = name==='correct' ? 'correctSound'
+              : name==='wrong'   ? 'wrongSound'
+              : name==='cd'      ? 'countdownSound'
+              : name==='test'    ? 'testSound'
+              : name==='end'     ? 'endMusic'
+              : name==='totyu'   ? 'totyuMusic'
+              : 'startMusic';
       const el = document.getElementById(id);
       try{ el.pause(); el.currentTime = 0; el.play(); }catch(_){}
       return;
@@ -399,14 +385,19 @@
     src.start(0);
   }
   function safePlay(id){
-    resumeAudioIfNeeded().catch(()=>{});
     if(id==='correctSound') return playBuffer('correct');
     if(id==='wrongSound')   return playBuffer('wrong');
     if(id==='countdownSound') return playBuffer('cd');
     if(id==='testSound')    return playBuffer('test');
     if(id==='endMusic')     return playBuffer('end');
-    if(id==='quitMusic')    return playBuffer('quit');
-    if(id==='startSound')   return playBuffer('start');
+    if(id==='totyuMusic')   return playBuffer('totyu');
+    if(id==='startSound')   return playBuffer('startS');
+  }
+  function stopOneShots(){
+    ['correctSound','wrongSound','countdownSound','testSound','endMusic','totyuMusic','startMusic'].forEach(id=>{
+      const el = document.getElementById(id);
+      try{ el.pause(); el.currentTime = 0; }catch(_){}
+    });
   }
 
   // テスト音（mp3を再生）
@@ -425,6 +416,7 @@
 
   function startCountdown(){
     document.getElementById("startButton").disabled = true;
+    stopOneShots(); // 他の音を止める
     const cd = document.getElementById("countdownSound"); // 進行参照用
     const overlay = document.getElementById("countOverlay");
     const text = document.getElementById("countText");
@@ -530,9 +522,7 @@
   function quitGame(){
     if(confirm("ゲームを終了しますか？")){
       clearInterval(elapsedTimer);
-      // 途中終了のサウンド
-      safePlay('quitMusic');
-      showFinalReport(false);
+      showFinalReport(false); // 途中終了
     }
   }
 
@@ -677,10 +667,9 @@
     report.innerHTML = html;
     report.style.display = "block";
 
-    // 完走/途中終了 サウンド
-    if (finished) {
-      safePlay('endMusic');
-    } // 途中終了のときは quitGame() 内で再生済み
+    // ここでBGM（完走 or 途中）を再生
+    stopOneShots();
+    if(finished){ safePlay('endMusic'); } else { safePlay('totyuMusic'); }
 
     if(canEditProfile && myDocId){
       const btn = document.getElementById('submitBtn');
@@ -711,8 +700,9 @@
     document.getElementById('gameArea').style.display = "none";
     document.getElementById('startArea').style.display = "block";
     document.getElementById('startButton').disabled = false;
-    // ホームに戻ったら念のためBGMを止める
+    // いったん全停止してから start.mp3 を再生
     stopOneShots();
+    safePlay('startSound');
   }
   async function goHomeAndShowRank(){
     goHome();
@@ -723,10 +713,8 @@
   /**********************
    * 起動
    **********************/
-  document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('DOMContentLoaded', ()=>{
     renderTop10();
-    // 最初の画面表示から 0.2秒後に start.mp3
-    setTimeout(() => { safePlay('startSound'); }, 200);
   });
   </script>
 
