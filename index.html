@@ -8,15 +8,18 @@
   body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans JP", sans-serif; background:#f4f4f4; margin:0; }
   h1 { margin:0; padding:16px; text-align:center; background:#fff; color:#444; }
 
+  /* トップバー（常時） */
   .topbar { display:flex; gap:10px; justify-content:center; align-items:center; flex-wrap:wrap; padding:10px; background:#fff; border-bottom:1px solid #eee; }
   .sound-toggle { display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; background:#fff; border:1px solid #ddd; }
   .homeBtn { padding:8px 12px; border:none; border-radius:8px; background:#6c757d; color:#fff; cursor:pointer; }
 
+  /* スタート画面 */
   #startArea { padding:16px; }
   #top10Box { max-width:960px; margin: 10px auto; background:#fff; border-radius:10px; padding:14px; }
   #startButtons { text-align:center; margin:0 0 18px; }
   #startButton { background:#ff69b4; color:#fff; border:none; padding:14px 36px; font-size:18px; border-radius:12px; cursor:pointer; }
 
+  /* ゲーム情報バー */
   #gameArea { max-width:980px; margin:0 auto; }
   .info { display:flex; justify-content:center; align-items:center; gap:16px; flex-wrap:wrap; margin:10px; }
   .badge { display:inline-block; padding:4px 10px; border-radius:999px; font-weight:700; }
@@ -33,6 +36,7 @@
 
   .result { text-align:center; font-size:18px; min-height:1.6em; margin:8px 0; }
 
+  /* ランキング表 */
   table { width:100%; border-collapse:collapse; }
   th, td { padding:8px; border-bottom:1px solid #e9e9e9; }
   th { background:#fafafa; text-align:left; }
@@ -41,6 +45,7 @@
   .rankLine { margin:8px 0 0; font-size:16px; color:#555; }
   .rankEm { font-size:32px; font-weight:900; color:#d9534f; }
 
+  /* 操作ボタン（ゲーム中） */
   #controlButtons { margin-top:10px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
   .btn { padding:10px 16px; border:none; border-radius:10px; cursor:pointer; }
   .btn-primary { background:#007bff; color:#fff; }
@@ -50,17 +55,20 @@
   .btn-success { background:#28a745; color:#fff; }
   .btn-link { background:transparent; color:#007bff; text-decoration:underline; border:none; cursor:pointer; }
 
+  /* 結果 */
   #finalReport { max-width:960px; margin:16px auto; background:#fff; border-radius:10px; padding:14px; display:none; }
   #finalReport h3{ margin:0 0 10px; }
   .report-item { margin:8px 0; }
   .wrong { color:#d9534f; }
   .correct { color:#2e7d32; }
 
+  /* カウントダウン */
   #countOverlay{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.65); color:#fff; z-index:9999; font-weight:900; text-shadow:0 4px 14px rgba(0,0,0,.6); user-select:none; font-size:120px; }
   #countText { display:block; }
   @keyframes popscale { 0%{transform:scale(.7)} 60%{transform:scale(1.15)} 100%{transform:scale(1)} }
   .pop { animation: popscale .35s ease-out; }
 
+  /* フッター */
   footer { margin:18px auto 28px; max-width:960px; font-size:12px; color:#555; padding:0 12px; }
   footer .note { background:#fff; border:1px solid #eee; border-radius:8px; padding:10px; }
 </style>
@@ -68,6 +76,7 @@
 <body>
   <h1>P.E.I.P. 分類クイズ</h1>
 
+  <!-- 常時表示のトップバー -->
   <div class="topbar">
     <label class="sound-toggle" title="効果音 ON/OFF">
       <input type="checkbox" id="soundToggle" checked />
@@ -76,6 +85,7 @@
     <button class="homeBtn" onclick="goHome()">スタート画面に戻る</button>
   </div>
 
+  <!-- スタート画面 -->
   <div id="startArea">
     <div id="startButtons">
       <button id="startButton" onclick="startCountdown()">スタート</button>
@@ -87,6 +97,7 @@
     <div id="top10Box">読み込み中...</div>
   </div>
 
+  <!-- ゲーム画面 -->
   <div id="gameArea" style="display:none;">
     <div class="info">
       <span>スコア: <strong id="score">0</strong></span>
@@ -97,6 +108,7 @@
 
     <div class="question" id="question">問題を読み込み中...</div>
 
+    <!-- 回答ボタン -->
     <div class="buttons" id="answerButtons">
       <button class="btn-circle P"  onclick="checkAnswer('P')"><span class="btn-content"><span class="line1">きもち</span><span class="line2">Personality</span><span class="line3">個人</span></span></button>
       <button class="btn-circle E"  onclick="checkAnswer('E')"><span class="btn-content"><span class="line1">まわり</span><span class="line2">Environment</span><span class="line3">環境</span></span></button>
@@ -106,17 +118,20 @@
 
     <div class="result" id="result"></div>
 
+    <!-- 操作ボタン -->
     <div id="controlButtons">
       <button class="btn btn-warning" id="pauseButton" onclick="togglePause()">⏸ 一時停止</button>
       <button class="btn btn-danger"  id="quitButton"  onclick="quitGame()">⏹ やめる</button>
     </div>
   </div>
 
+  <!-- 結果表示 -->
   <div id="finalReport"></div>
 
+  <!-- カウントダウン -->
   <div id="countOverlay"><span id="countText">3</span></div>
 
-  <!-- 効果音（iOS安定化のため playsinline 付与） -->
+  <!-- 効果音（playsinline でiOS安定化） -->
   <audio id="correctSound"   src="se_correct.mp3"  preload="auto" playsinline></audio>
   <audio id="wrongSound"     src="se_wrong.mp3"    preload="auto" playsinline></audio>
   <audio id="countdownSound" src="countdown.mp3"   preload="auto" playsinline></audio>
@@ -127,7 +142,7 @@
 
   <script>
   /**********************
-   * Firebase 設定（固定）
+   * Firebase 設定
    **********************/
   const firebaseConfig = {
     apiKey: "AIzaSyARGroRdf4DmJN5nOHdiVy-a9UCA1ruDPw",
@@ -157,31 +172,31 @@
    * 問題
    **********************/
   const questions = [
-    { text: "孫に会いたいと思っているか？", answer: "P" },{ text: "洗濯物にしわはあるか？", answer: "E" },
+    { text: "子どもに会いたいと思っているか？", answer: "P" },{ text: "洗濯物にしわはないか？", answer: "E" },
     { text: "トイレで立位をとることができるか？", answer: "I" },{ text: "便秘はないか？", answer: "Ph" },
-    { text: "朝食の飲み物にこだわりはあるか？", answer: "P" },{ text: "居室の手すりにぐらつきはないか？", answer: "E" },
-    { text: "一人で歯磨きはできるか？", answer: "I" },{ text: "むせこみはないか？", answer: "Ph" },
+    { text: "朝食の飲み物にこだわりはあるか？", answer: "P" },{ text: "トイレの手すりにぐらつきはないか？", answer: "E" },
+    { text: "歯磨きは一人で行えるか？", answer: "I" },{ text: "むせこみはないか？", answer: "Ph" },
     { text: "デイサービスを楽しみにしているか？", answer: "P" },{ text: "冷蔵庫の中に消費期限が過ぎた食品はないか？", answer: "E" },
     { text: "歩行器を使えば自立歩行はできるか？", answer: "I" },{ text: "足にむくみはないか？", answer: "Ph" },
-    { text: "好きな音楽は何か？", answer: "P" },{ text: "洗面所の床は濡れていないか？", answer: "E" },
+    { text: "好きな音楽（曲・歌手）は何か？", answer: "P" },{ text: "洗面所の床は濡れていないか？", answer: "E" },
     { text: "トイレのボタンを操作することはできるか？", answer: "I" },{ text: "肌は乾燥していないか？", answer: "Ph" },
-    { text: "外出できるようになりたいという希望はあるか？", answer: "P" },{ text: "居室のベッドは介助用ベッドか？", answer: "E" },
-    { text: "自分で着替えはできるか？", answer: "I" },{ text: "食欲の有無", answer: "Ph" },
-    { text: "昔していた仕事は何か？", answer: "P" },{ text: "今使用している福祉用具は何か？", answer: "E" },
-    { text: "自分で電話をかけることができるか？", answer: "I" },{ text: "視力はどの程度か？", answer: "Ph" },
+    { text: "施設の暮らしで困っていることはないか？", answer: "P" },{ text: "息苦しさや胸の圧迫感はないか？", answer: "Ph" },
+    { text: "着替えは介助なしできるか？", answer: "I" },{ text: "食欲や水分摂取量はどうなっているか？", answer: "Ph" },
+    { text: "昔していた仕事は何か？", answer: "P" },{ text: "使用している福祉用具は何か？", answer: "E" },
+    { text: "電話をかけることができるか？", answer: "I" },{ text: "視力はどの程度か？", answer: "Ph" },
     { text: "食べたいものはあるか？", answer: "P" },{ text: "自宅で10ミリ以上の段差があるのはどこか？", answer: "E" },
-    { text: "自分でお茶を入れて飲むことはできるか？", answer: "I" },{ text: "夜間の頻尿の有無", answer: "Ph" },
-    { text: "習慣となっていることは何か？", answer: "P" },{ text: "介護保険制度で利用しているサービスは何か？", answer: "E" },
-    { text: "朝の体操で体を動かすことはできているか？", answer: "I" },{ text: "ふらつきはないか？", answer: "Ph" },
-    { text: "趣味（編み物）を再開したいという思いはあるか？", answer: "P" },{ text: "居室の温度・室温は？", answer: "E" },
-    { text: "自分で食事を準備することはできるか？", answer: "I" },{ text: "腰痛など体の痛みはないか？", answer: "Ph" },
-    { text: "調味料にこだわりはあるか？", answer: "P" },{ text: "テレビのボリュームはいくつか？", answer: "E" },
-    { text: "自分で薬は管理できているか？", answer: "I" },{ text: "まぶたに目やにはついていないか？", answer: "Ph" },
-    { text: "どのような環境で寝たい思っているか？", answer: "P" },{ text: "ベッドサイドにコールボタンなどの有無", answer: "E" },
-    { text: "肘なしの椅子でも座位をとることはできているか？", answer: "I" },{ text: "巻き爪はないか？", answer: "Ph" },
-    { text: "何をしている時が幸せを感じる時か？", answer: "P" },{ text: "近所の人との交流はあるか？", answer: "E" },
-    { text: "買い物リストを自分で書くことはできるか？", answer: "I" },{ text: "夜間に不眠の有無", answer: "Ph" },
-    { text: "食事の際にこだわりの食器や場所はあるか？", answer: "P" },{ text: "居室の換気状況", answer: "E" }
+    { text: "お茶を入れて飲むことはできるか？", answer: "I" },{ text: "夜間に頻尿（2回以上）はないか？", answer: "Ph" },
+    { text: "習慣となっていることは何か？", answer: "P" },{ text: "利用している介護保険のサービスは何か？", answer: "E" },
+    { text: "体操で体を動かすことはできているか？", answer: "I" },{ text: "ふらつきはないか？", answer: "Ph" },
+    { text: "趣味のカラオケをしたいという思いはあるか？", answer: "P" },{ text: "居室の温度・室温は？", answer: "E" },
+    { text: "食事の準備は一人でできるか？", answer: "I" },{ text: "腰痛など体の痛みはないか？", answer: "Ph" },
+    { text: "調味料にこだわりはあるか？", answer: "P" },{ text: "薬の管理の際に手伝ってもらいたいことはあるか？", answer: "P" },
+    { text: "薬の管理は一人で行えているか？", answer: "I" },{ text: "瞼に「目やに」はついていないか？", answer: "Ph" },
+    { text: "どのような環境で寝たい思っているか？", answer: "P" },{ text: "コールボタンは居室のどこにあるか？", answer: "E" },
+    { text: "肘なしの椅子でも座位をとることはできるか？", answer: "I" },{ text: "巻き爪はないか？", answer: "Ph" },
+    { text: "何をしている時が幸せを感じる時か？", answer: "P" },{ text: "現在、交流のある人は誰か？", answer: "E" },
+    { text: "買い物リストを自分で書くことはできるか？", answer: "I" },{ text: "夜間に不眠はないか？", answer: "Ph" },
+    { text: "食事の際にこだわりの食器はあるか？", answer: "P" },{ text: "居室の換気状況は？", answer: "E" }
   ];
   const TOTAL_QUESTIONS = questions.length;
 
@@ -196,7 +211,9 @@
   // 一時停止
   let paused = false, pauseStartTime = 0, totalPausedTime = 0;
 
-  // サウンド
+  /**********************
+   * サウンド：プール方式＋解禁処理
+   **********************/
   let soundEnabled = true;
   const soundToggle = document.getElementById('soundToggle');
   const soundLabel  = document.getElementById('soundLabel');
@@ -205,51 +222,74 @@
     soundLabel.textContent = soundEnabled ? '音声: ON' : '音声: OFF';
   });
 
-  // ---- 重要：初回タップで音を“解禁”し、デコードを促す ----
-  function unlockAudioOnce(){
-    ['correctSound','wrongSound','countdownSound'].forEach(id=>{
-      const el = document.getElementById(id);
-      el.muted = true;
-      el.play().finally(()=>{
-        el.pause(); el.currentTime = 0; el.muted = false;
+  function makeAudioPool(id, size=4){
+    const first = document.getElementById(id);
+    const pool = [first];
+    for(let i=1;i<size;i++){
+      const clone = first.cloneNode();   // src/属性をコピー
+      clone.removeAttribute('id');       // id重複回避
+      first.parentNode.appendChild(clone);
+      pool.push(clone);
+    }
+    let idx = 0;
+    const play = async ()=>{
+      if(!soundEnabled) return;
+      const el = pool[idx = (idx + 1) % pool.length];
+      try{
+        el.pause();
+        el.currentTime = 0;
+        await el.play();
+      }catch(e){}
+    };
+    const unlock = ()=>{
+      pool.forEach(el=>{
+        el.muted = true;
+        el.play().finally(()=>{ el.pause(); el.currentTime = 0; el.muted = false; });
       });
-    });
+    };
+    return { play, unlock, pool };
+  }
+
+  const pools = {
+    correct: makeAudioPool('correctSound',   8), // 連打対策で余裕をもって8
+    wrong:   makeAudioPool('wrongSound',     8), // 連打対策で余裕をもって8
+    cd:      makeAudioPool('countdownSound', 2),
+  };
+
+  function unlockAudioOnce(){
+    pools.correct.unlock();
+    pools.wrong.unlock();
+    pools.cd.unlock();
   }
   window.addEventListener('pointerdown', unlockAudioOnce, { once:true });
 
-  // ---- 安全な再生ユーティリティ（巻き戻し→再生）----
-  async function safePlay(id){
-    if(!soundEnabled) return;
-    const el = document.getElementById(id);
-    try{
-      el.pause();
-      el.currentTime = 0;
-      await el.play();
-    }catch(e){
-      // 再生できない環境（サイレントスイッチ等）は無視
-      // console.debug('audio play failed', id, e);
-    }
-  }
-
-  // 任意：canplaythrough までの読み込みを促す（初回安定化）
   function primeAudio(){
-    ['correctSound','wrongSound','countdownSound'].forEach(id=>{
-      const el = document.getElementById(id);
-      if(el.readyState < 3){
-        el.addEventListener('canplaythrough', ()=>{}, { once:true });
-        el.load();
-      }
+    Object.values(pools).forEach(p=>{
+      p.pool.forEach(el=>{
+        if(el.readyState < 3){
+          el.addEventListener('canplaythrough', ()=>{}, { once:true });
+          el.load();
+        }
+      });
     });
   }
-  // 起動時に呼んでおく
   document.addEventListener('DOMContentLoaded', primeAudio);
 
-  const shuffle = (a)=>{ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } };
+  function safePlay(id){
+    if(id==='correctSound') return pools.correct.play();
+    if(id==='wrongSound')   return pools.wrong.play();
+    if(id==='countdownSound') return pools.cd.play();
+  }
 
   /**********************
    * カウントダウン
    **********************/
-  const COUNTDOWN_MARKERS = [{time:0.00,label:"3"},{time:0.90,label:"2"},{time:1.80,label:"1"},{time:2.65,label:"スタート！"}];
+  const COUNTDOWN_MARKERS = [
+    {time:0.00,label:"3"},
+    {time:0.90,label:"2"},
+    {time:1.80,label:"1"},
+    {time:2.65,label:"スタート！"}
+  ];
   const HOLD_AFTER_START = 1.80, EPS = 0.015;
 
   function startCountdown(){
@@ -261,17 +301,23 @@
     let idx = 0;
     const endTime = COUNTDOWN_MARKERS.at(-1).time + HOLD_AFTER_START + 0.05;
 
-    const showLabel = (s)=>{ if(text.textContent!==s){ text.textContent=s; text.classList.remove('pop'); void text.offsetWidth; text.classList.add('pop'); }};
+    const showLabel = (s)=>{
+      if(text.textContent!==s){
+        text.textContent=s;
+        text.classList.remove('pop'); void text.offsetWidth; text.classList.add('pop');
+      }
+    };
 
     const begin = ()=>{
       const t0 = performance.now();
       const tick = ()=>{
         const elapsed = (performance.now()-t0)/1000;
         const cur = cd.currentTime || elapsed;
-        while(idx<COUNTDOWN_MARKERS.length && cur+EPS>=COUNTDOWN_MARKERS[idx].time){ showLabel(COUNTDOWN_MARKERS[idx].label); idx++; }
+        while(idx<COUNTDOWN_MARKERS.length && cur+EPS>=COUNTDOWN_MARKERS[idx].time){
+          showLabel(COUNTDOWN_MARKERS[idx].label); idx++;
+        }
         if(elapsed<endTime){ requestAnimationFrame(tick); }else{ overlay.style.display="none"; beginGame(); }
       };
-      // ここを safePlay に変更
       safePlay('countdownSound');
       tick();
     };
@@ -322,8 +368,13 @@
     document.getElementById('accuracy').textContent = `${rate}%`;
   }
 
+  // 二度押し防止フラグ
+  let answering = false;
+
   function checkAnswer(choice){
-    if(paused) return;
+    if(paused || answering) return; // 連打ガード
+    answering = true;
+
     const correct = questions[current].answer;
     if(choice === correct){
       score++;
@@ -336,7 +387,8 @@
       penaltyTime += 10000; updateElapsed();
     }
     document.getElementById('score').textContent = score;
-    current++; updateAccuracy(); setTimeout(showQuestion, 900);
+    current++; updateAccuracy();
+    setTimeout(()=>{ showQuestion(); answering = false; }, 900); // 次の問題表示時に解除
   }
 
   function togglePause(){
@@ -358,7 +410,7 @@
   }
 
   /**********************
-   * ランキング取得
+   * ランキング
    **********************/
   async function fetchFinishers(){
     const snap = await db.collection('scores')
@@ -538,6 +590,7 @@
   /**********************
    * 起動処理
    **********************/
+  const shuffle = (a)=>{ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } };
   document.addEventListener('DOMContentLoaded', renderTop10);
   </script>
 
