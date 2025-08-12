@@ -7,7 +7,6 @@
 <style>
   body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans JP", sans-serif; background:#f4f4f4; margin:0; }
   h1 { margin:0; padding:16px; text-align:center; background:#fff; color:#444; }
-
   .topbar { display:flex; gap:10px; justify-content:center; align-items:center; flex-wrap:wrap; padding:10px; background:#fff; border-bottom:1px solid #eee; }
   .right { margin-left:auto; display:flex; gap:8px; align-items:center; }
   .sound-toggle { display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; background:#fff; border:1px solid #ddd; }
@@ -70,6 +69,7 @@
 <body>
   <h1>P.E.I.P. 分類クイズ</h1>
 
+  <!-- トップバー -->
   <div class="topbar">
     <label class="sound-toggle" title="効果音 ON/OFF">
       <input type="checkbox" id="soundToggle" checked />
@@ -81,6 +81,7 @@
     </div>
   </div>
 
+  <!-- スタート画面 -->
   <div id="startArea">
     <div id="startButtons">
       <button id="startButton" onclick="startCountdown()">スタート</button>
@@ -92,6 +93,7 @@
     <div id="top10Box">読み込み中...</div>
   </div>
 
+  <!-- ゲーム画面 -->
   <div id="gameArea" style="display:none;">
     <div class="info">
       <span>スコア: <strong id="score">0</strong></span>
@@ -117,8 +119,10 @@
     </div>
   </div>
 
+  <!-- 結果表示 -->
   <div id="finalReport"></div>
 
+  <!-- カウントダウン -->
   <div id="countOverlay"><span id="countText">3</span></div>
 
   <!-- audioタグ（URL参照＆最終フォールバック用） -->
@@ -201,18 +205,15 @@
   let paused = false, pauseStartTime = 0, totalPausedTime = 0;
 
   /**********************
-   * サウンド：WebAudio（遅延初期化）+ フォールバック
+   * サウンド：WebAudio（遅延初期化）+ マスターゲイン + フォールバック
    **********************/
   let soundEnabled = true;
   const soundToggle = document.getElementById('soundToggle');
   const soundLabel  = document.getElementById('soundLabel');
-  soundToggle.addEventListener('change', ()=>{
-    soundEnabled = soundToggle.checked;
-    soundLabel.textContent = soundEnabled ? '音声: ON' : '音声: OFF';
-  });
 
   const AudioCtx = window.AudioContext || window.webkitAudioContext;
-  let audioCtx = null;             // ← ユーザー操作時に生成
+  let audioCtx = null;             // ユーザー操作時に生成
+  let masterGain = null;           // ★マスター音量
   const buffers = {};              // { correct, wrong, cd }
   let audioUnlocked = false;
   let useHtmlAudioFallback = false;
@@ -223,13 +224,31 @@
     cd:       document.getElementById('countdownSound').src
   };
 
+  soundToggle.addEventListener('change', ()=>{
+    soundEnabled = soundToggle.checked;
+    soundLabel.textContent = soundEnabled ? '音声: ON' : '音声: OFF';
+
+    // WebAudio：マスターゲインでミュート
+    if(masterGain) masterGain.gain.value = soundEnabled ? 1 : 0;
+
+    // HTMLAudioフォールバックもミュート
+    ['correctSound','wrongSound','countdownSound'].forEach(id=>{
+      const el = document.getElementById(id);
+      el.muted = !soundEnabled;
+      if(!soundEnabled){ el.pause(); el.currentTime = 0; }
+    });
+  });
+
   async function loadBuffer(name, url){
     try{
       const res = await fetch(url, { cache: "force-cache" });
       if(!res.ok) throw new Error(`HTTP ${res.status}`);
       const buf = await res.arrayBuffer();
       buffers[name] = await new Promise((resolve, reject)=>{
-        audioCtx.decodeAudioData(buf, resolve, reject);
+        // Safari互換：コールバック付き
+        (audioCtx.decodeAudioData.length === 1)
+          ? audioCtx.decodeAudioData(buf).then(resolve, reject)
+          : audioCtx.decodeAudioData(buf, resolve, reject);
       });
     }catch(e){
       console.error("WebAudioの読み込み失敗 -> HTMLAudioにフォールバック:", name, e);
@@ -240,11 +259,19 @@
   async function unlockAndInitAudio(){
     try{
       if(!audioCtx) audioCtx = new AudioCtx();
+
+      // ★マスターゲイン作成・接続
+      if(!masterGain){
+        masterGain = audioCtx.createGain();
+        masterGain.gain.value = 1;               // 初期ON
+        masterGain.connect(audioCtx.destination);
+      }
+
       if(audioCtx.state !== 'running') await audioCtx.resume();
 
       // 超短い無音でデバイスを起こす
       const b = audioCtx.createBuffer(1, 1, audioCtx.sampleRate);
-      const s = audioCtx.createBufferSource(); s.buffer = b; s.connect(audioCtx.destination); s.start();
+      const s = audioCtx.createBufferSource(); s.buffer = b; s.connect(masterGain); s.start();
 
       // デコード（初回タップ中に開始）
       await Promise.all([
@@ -269,16 +296,19 @@
 
   function playBuffer(name){
     if(!soundEnabled) return;
-    // まだ解禁/デコード前 or 失敗時 → HTMLAudio
+
+    // 未解禁/未デコード/失敗 → HTMLAudioへ
     if(useHtmlAudioFallback || !audioUnlocked || !audioCtx || !buffers[name]){
       const id = (name==='correct'?'correctSound': name==='wrong'?'wrongSound':'countdownSound');
       const el = document.getElementById(id);
       try{ el.pause(); el.currentTime = 0; el.play(); }catch(_){}
       return;
     }
+
     const src = audioCtx.createBufferSource();
     src.buffer = buffers[name];
-    src.connect(audioCtx.destination);
+    // ★マスターゲインへ接続
+    src.connect(masterGain);
     src.start(0);
   }
 
@@ -288,15 +318,21 @@
     if(id==='countdownSound') return playBuffer('cd');
   }
 
-  // 🔊テスト音（WebAudioの経路確認）
+  // 🔊テスト音（マスターゲイン経由 & トグル尊重）
   document.getElementById('beepBtn').addEventListener('click', ()=>{
-    if(!audioCtx){ audioCtx = new AudioCtx(); }
+    if(!audioCtx) audioCtx = new AudioCtx();
+    if(!masterGain){
+      masterGain = audioCtx.createGain();
+      masterGain.gain.value = soundEnabled ? 1 : 0;
+      masterGain.connect(audioCtx.destination);
+    }
     if(audioCtx.state !== 'running'){ audioCtx.resume(); }
+    if(!soundEnabled) return;
     const osc = audioCtx.createOscillator();
     const g = audioCtx.createGain();
     g.gain.value = 0.1;
     osc.frequency.value = 880;
-    osc.connect(g).connect(audioCtx.destination);
+    osc.connect(g).connect(masterGain);
     osc.start();
     setTimeout(()=>osc.stop(), 200);
   });
@@ -607,6 +643,7 @@
     window.scrollTo({ top:0, behavior:'smooth' });
   }
 
+  // 起動
   document.addEventListener('DOMContentLoaded', renderTop10);
   </script>
 
