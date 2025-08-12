@@ -125,7 +125,7 @@
   <div class="topbar">
     <label class="sound-toggle" title="効果音 ON/OFF">
       <input type="checkbox" id="soundToggle" checked />
-      <span id="soundLabel">音声: ON</span>
+      <span id="soundLabel">音声: ON（モバイルは端末の消音優先）</span>
     </label>
     <div class="right">
       <button class="testBtn" id="beepBtn" title="サウンド診断">🔊テスト音</button>
@@ -173,7 +173,7 @@
 
   <div id="countOverlay"><span id="countText">3</span></div>
 
-  <!-- HTMLAudio（iOS消音優先のため残す） -->
+  <!-- HTMLAudio（端末の消音に追従） -->
   <audio id="correctSound"   src="se_correct.mp3"  preload="auto" playsinline></audio>
   <audio id="wrongSound"     src="se_wrong.mp3"    preload="auto" playsinline></audio>
   <audio id="countdownSound" src="countdown.mp3"   preload="auto" playsinline></audio>
@@ -234,123 +234,87 @@
   ];
   const TOTAL_QUESTIONS = questions.length;
 
-  /* 状態 */
+  /* ====== サウンド：HTMLAudioプール（端末の消音が最優先）====== */
+  let soundEnabled = true;
+  const soundToggle = document.getElementById('soundToggle');
+  const soundLabel  = document.getElementById('soundLabel');
+
+  // 汎用：同じ <audio> を複製して同時再生数を確保
+  function makeAudioPool(id, size=6){
+    const first = document.getElementById(id);
+    const pool = [first];
+    for(let i=1; i<size; i++){
+      const c = first.cloneNode(); // 属性コピー
+      c.removeAttribute('id');
+      first.parentNode.appendChild(c);
+      pool.push(c);
+    }
+    // 端末の消音に従うため、muted は UI でのみ切り替える
+    pool.forEach(el => { el.muted = !soundEnabled; });
+
+    let idx = 0;
+    const play = async ()=>{
+      if(!soundEnabled) return;
+      const el = pool[idx = (idx + 1) % pool.length];
+      try{
+        el.pause();
+        el.currentTime = 0;
+        await el.play(); // 端末が消音なら無音のまま再生（これでOK）
+      }catch(e){/* ユーザー操作前やOS制約時は無視 */}
+    };
+    const unlock = ()=>{
+      // iOS/Android対策：初回タップで再生許可を取る（消音でも許可だけ取る）
+      pool.forEach(el=>{
+        el.muted = true;
+        el.play().finally(()=>{ el.pause(); el.currentTime = 0; el.muted = !soundEnabled; });
+      });
+    };
+    const setMuted = (m)=> pool.forEach(el => el.muted = m);
+    return { play, unlock, setMuted, pool };
+  }
+
+  const pools = {
+    correct: makeAudioPool('correctSound', 8),
+    wrong:   makeAudioPool('wrongSound',   8),
+    cd:      makeAudioPool('countdownSound', 2),
+  };
+
+  // UIトグル
+  soundToggle.addEventListener('change', ()=>{
+    soundEnabled = soundToggle.checked;
+    soundLabel.textContent = soundEnabled ? '音声: ON（モバイルは端末の消音優先）' : '音声: OFF';
+    pools.correct.setMuted(!soundEnabled);
+    pools.wrong.setMuted(!soundEnabled);
+    pools.cd.setMuted(!soundEnabled);
+    if(!soundEnabled){
+      // 念のため全て停止
+      document.querySelectorAll('audio').forEach(a=>{ try{ a.pause(); a.currentTime = 0; }catch(_){ } });
+    }
+  });
+
+  // 初回タップで再生許可
+  function unlockAll(){ pools.correct.unlock(); pools.wrong.unlock(); pools.cd.unlock(); }
+  window.addEventListener('pointerdown', unlockAll, { once:true, passive:true });
+  window.addEventListener('touchstart',  unlockAll, { once:true, passive:true });
+  window.addEventListener('click',       unlockAll, { once:true, passive:true });
+
+  // 互換API
+  function safePlay(id){
+    if(id==='correctSound') return pools.correct.play();
+    if(id==='wrongSound')   return pools.wrong.play();
+    if(id==='countdownSound') return pools.cd.play();
+  }
+
+  // テスト音（正解音の一つを鳴らす）
+  document.getElementById('beepBtn').addEventListener('click', ()=>{ safePlay('correctSound'); });
+
+  /* ====== ゲーム状態 ====== */
   let current = 0, score = 0;
   let startTime = 0, elapsedTimer = null;
   let penaltyTime = 0, wrongList = [];
   let paused = false, pauseStartTime = 0, totalPausedTime = 0;
 
-  /* サウンド：iOSはHTMLAudio優先（消音スイッチに追従）/ その他はWebAudio */
-  const isIOS = /iP(hone|ad|od)/i.test(navigator.userAgent) || 
-                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); // iPadOS判定
-  const RESPECT_IOS_SILENT = true;
-
-  let soundEnabled = true;
-  const soundToggle = document.getElementById('soundToggle');
-  const soundLabel  = document.getElementById('soundLabel');
-  const AudioCtx = window.AudioContext || window.webkitAudioContext;
-  let audioCtx = null, masterGain = null, audioUnlocked = false, useHtmlAudioFallback = isIOS && RESPECT_IOS_SILENT;
-  const buffers = {};
-  const urls = {
-    correct:  document.getElementById('correctSound').src,
-    wrong:    document.getElementById('wrongSound').src,
-    cd:       document.getElementById('countdownSound').src
-  };
-
-  if (useHtmlAudioFallback) {
-    // 表示に注記
-    soundLabel.textContent = '音声: ON（iOSは消音優先）';
-  }
-
-  soundToggle.addEventListener('change', ()=>{
-    soundEnabled = soundToggle.checked;
-    soundLabel.textContent = soundEnabled
-      ? (useHtmlAudioFallback ? '音声: ON（iOSは消音優先）' : '音声: ON')
-      : '音声: OFF';
-    if(masterGain) masterGain.gain.value = soundEnabled ? 1 : 0;
-    // HTMLAudio も同期
-    ['correctSound','wrongSound','countdownSound'].forEach(id=>{
-      const el = document.getElementById(id);
-      el.muted = !soundEnabled;
-      if(!soundEnabled){ el.pause(); el.currentTime = 0; }
-    });
-  });
-
-  async function loadBuffer(name, url){
-    const res = await fetch(url, { cache: "force-cache" });
-    if(!res.ok) throw new Error(`HTTP ${res.status}`);
-    const buf = await res.arrayBuffer();
-    buffers[name] = await new Promise((resolve, reject)=>{
-      (audioCtx.decodeAudioData.length === 1)
-        ? audioCtx.decodeAudioData(buf).then(resolve, reject)
-        : audioCtx.decodeAudioData(buf, resolve, reject);
-    });
-  }
-
-  async function unlockAndInitAudio(){
-    if (useHtmlAudioFallback) return; // iOSはHTMLAudioのみ
-    try{
-      if(!audioCtx) audioCtx = new AudioCtx();
-      if(!masterGain){
-        masterGain = audioCtx.createGain();
-        masterGain.gain.value = soundEnabled ? 1 : 0;
-        masterGain.connect(audioCtx.destination);
-      }
-      if(audioCtx.state !== 'running') await audioCtx.resume();
-      const b = audioCtx.createBuffer(1, 1, audioCtx.sampleRate);
-      const s = audioCtx.createBufferSource(); s.buffer = b; s.connect(masterGain); s.start();
-      await Promise.all([ loadBuffer('correct', urls.correct), loadBuffer('wrong', urls.wrong), loadBuffer('cd', urls.cd) ]);
-      audioUnlocked = true;
-    }catch(e){
-      console.warn("WebAudio初期化失敗。HTMLAudioへフォールバックします:", e);
-      useHtmlAudioFallback = true;
-      soundLabel.textContent = soundEnabled ? '音声: ON（iOSは消音優先）' : '音声: OFF';
-    }
-  }
-
-  const onceOpts = { once:true, passive:true };
-  window.addEventListener('pointerdown', unlockAndInitAudio, onceOpts);
-  window.addEventListener('touchstart',  unlockAndInitAudio, onceOpts);
-  window.addEventListener('click',       unlockAndInitAudio, onceOpts);
-  window.addEventListener('keydown',     unlockAndInitAudio, onceOpts);
-
-  function playBuffer(name){
-    if(!soundEnabled) return;
-    if(useHtmlAudioFallback || !audioUnlocked || !audioCtx || !buffers[name]){
-      const id = name==='correct'?'correctSound': name==='wrong'?'wrongSound':'countdownSound';
-      const el = document.getElementById(id);
-      try{ el.pause(); el.currentTime = 0; el.play(); }catch(_){}
-      return;
-    }
-    const src = audioCtx.createBufferSource();
-    src.buffer = buffers[name];
-    src.connect(masterGain);
-    src.start(0);
-  }
-
-  function safePlay(id){
-    if(id==='correctSound') return playBuffer('correct');
-    if(id==='wrongSound')   return playBuffer('wrong');
-    if(id==='countdownSound') return playBuffer('cd');
-  }
-
-  // テスト音（WebAudio or HTMLAudioで擬似）
-  document.getElementById('beepBtn').addEventListener('click', ()=>{
-    if(!soundEnabled) return;
-    if(useHtmlAudioFallback){
-      const el = document.getElementById('correctSound');
-      try{ el.pause(); el.currentTime = 0; el.play(); }catch(_){}
-    }else{
-      if(!audioCtx) audioCtx = new AudioCtx();
-      if(!masterGain){ masterGain = audioCtx.createGain(); masterGain.gain.value = 1; masterGain.connect(audioCtx.destination); }
-      if(audioCtx.state !== 'running'){ audioCtx.resume(); }
-      const osc = audioCtx.createOscillator();
-      const g = audioCtx.createGain(); g.gain.value = 0.12;
-      osc.frequency.value = 880; osc.connect(g).connect(masterGain); osc.start(); setTimeout(()=>osc.stop(), 180);
-    }
-  });
-
-  /* カウントダウン */
+  /* ====== カウントダウン ====== */
   const COUNTDOWN_MARKERS = [{time:0.00,label:"3"},{time:0.90,label:"2"},{time:1.80,label:"1"},{time:2.65,label:"スタート！"}];
   const HOLD_AFTER_START = 1.80, EPS = 0.015;
 
@@ -380,7 +344,7 @@
     else begin();
   }
 
-  /* ゲーム本体 */
+  /* ====== ゲーム本体 ====== */
   function beginGame(){
     document.getElementById('startArea').style.display = "none";
     document.getElementById('gameArea').style.display = "block";
@@ -459,7 +423,7 @@
     }
   }
 
-  /* ランキング */
+  /* ====== ランキング ====== */
   async function fetchFinishers(){
     const snap = await db.collection('scores')
       .where('completed','==', true)
@@ -501,7 +465,7 @@
     }
   }
 
-  /* 終了→記録 */
+  /* ====== 終了→記録 ====== */
   function endGame(){ clearInterval(elapsedTimer); showFinalReport(true); }
 
   async function showFinalReport(finished){
