@@ -518,7 +518,7 @@
       document.getElementById('result').textContent = `❌ 不正解（正解: ${labelMap[correct]}）`;
       safePlay("wrongSound");
       wrongList.push({ q: questions[current].text, your: labelMap[choice]||"（無回答）", right: labelMap[correct] });
-      penaltyTime += 10000; updateElapsed();
+      penaltyTime += 15000; updateElapsed();
     }
     document.getElementById('score').textContent = score;
     current++; updateAccuracy();
